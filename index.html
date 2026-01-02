@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- Link to CSS stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <!-- Content goes here -->
+	<!-- Firebase SDKs -->
+	<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+	<!-- Your Firebase configuration -->
+	<script>
+	  const firebaseConfig = {
+	  apiKey: "AIzaSyClonfK1u9vl-aj43Ipq8cNLGk9avqKlvE",
+	  authDomain: "job-tracker-zawadi.firebaseapp.com",
+	  databaseURL: "https://job-tracker-zawadi-default-rtdb.europe-west1.firebasedatabase.app",
+	  projectId: "job-tracker-zawadi",
+	  storageBucket: "job-tracker-zawadi.firebasestorage.app",
+	  messagingSenderId: "991350824064",
+	  appId: "1:991350824064:web:f838ef8be54f14d94cda65"
+	};
+
+	  // Initialize Firebase
+	  firebase.initializeApp(firebaseConfig);
+
+	  // Initialize Realtime Database
+	  const database = firebase.database();
+	</script>
+
+    <!-- Link to JavaScript file -->
+    <script src="script.js"></script>
+</body>
+</html>
