@@ -61,14 +61,46 @@
             </form>
         </section>
 
-        <!-- Applications Display -->
-        <section id="applications-section">
-            <h2>My Applications</h2>
-            <div id="applications-container">
-                <!-- Applications will be displayed here -->
-                <p id="no-apps-message">No applications yet. Add your first one above!</p>
+      <!-- Applications Display -->
+<section id="applications-section">
+    <div class="section-header">
+        <h2>My Applications</h2>
+        <div class="filter-controls">
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="🔍 Search by company name..." 
+                    class="search-input"
+                >
             </div>
-        </section>
+            
+            <!-- Status Filter -->
+            <div class="filter-container">
+                <select id="status-filter" class="status-filter">
+                    <option value="all">All Statuses</option>
+                    <option value="Applied">Applied</option>
+                    <option value="Phone Screen">Phone Screen</option>
+                    <option value="Technical Interview">Technical Interview</option>
+                    <option value="Final Round">Final Round</option>
+                    <option value="Offer">Offer</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Counter -->
+    <div id="applications-counter" class="applications-counter">
+        <span id="counter-text">Loading applications...</span>
+    </div>
+    
+    <!-- Applications Container -->
+    <div id="applications-container">
+        <p id="no-apps-message">No applications yet. Add your first one above!</p>
+    </div>
+</section>
     </main>
 
     <!-- Footer -->

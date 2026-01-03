@@ -160,47 +160,6 @@ function showSuccessMessage(message) {
 
 console.log('Page loaded. Ready to add applications.');
 
-/**
- * Load and display existing applications from Firebase
- */
-
-function loadApplications() {
-    const applicationsContainer = document.getElementById('applications-container');
-    const noAppsMessage = document.getElementById('no-apps-message');
-    
-    // Listen for data changes in Firebase
-    database.ref('applications').on('value', (snapshot) => {
-        const applications = snapshot.val();
-        
-        // If no applications exist
-        if (!applications) {
-            applicationsContainer.innerHTML = '<p id="no-apps-message">No applications yet. Add your first one above!</p>';
-            return;
-        }
-        
-        // Convert applications object to array
-        const applicationsArray = Object.keys(applications).map(key => {
-            return {
-                id: key,
-                ...applications[key]
-            };
-        });
-        
-        // Sort by timestamp (newest first)
-        applicationsArray.sort((a, b) => b.timestamp - a.timestamp);
-        
-        // Clear container
-        applicationsContainer.innerHTML = '';
-        
-        // Display each application
-        applicationsArray.forEach(app => {
-            const appCard = createApplicationCard(app);
-            applicationsContainer.appendChild(appCard);
-        });
-        
-        console.log(`📊 Loaded ${applicationsArray.length} applications`);
-    });
-}
 
 /**
  * Create an application card HTML element
@@ -400,6 +359,161 @@ function cancelEdit() {
     console.log('Edit cancelled - returned to add mode');
 }
 
+// ========================================
+// SEARCH & FILTER FUNCTIONALITY
+// ========================================
+
+// Store all applications for filtering
+let allApplications = [];
+
+// Get filter elements
+const searchInput = document.getElementById('search-input');
+const statusFilter = document.getElementById('status-filter');
+const counterText = document.getElementById('counter-text');
+
+/**
+ *  loadApplications with filter support
+ */
+function loadApplications() {
+    const applicationsContainer = document.getElementById('applications-container');
+    
+    //Show loading state
+    showLoadingState();
+    
+    // Listen for data changes in Firebase
+    database.ref('applications').on('value', (snapshot) => {
+        const applications = snapshot.val();
+        
+        // If no applications exist
+        if (!applications) {
+            applicationsContainer.innerHTML = '<p id="no-apps-message">No applications yet. Add your first one above!</p>';
+            updateCounter(0, 0);
+            allApplications = [];
+            return;
+        }
+        
+        // Convert applications object to array
+        allApplications = Object.keys(applications).map(key => {
+            return {
+                id: key,
+                ...applications[key]
+            };
+        });
+        
+        // Sort by timestamp (newest first)
+        allApplications.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Apply current filters
+        applyFilters();
+        
+        console.log(`📊 Loaded ${allApplications.length} applications`);
+    });
+}
+
+/**
+ * Apply search and status filters
+ */
+function applyFilters() {
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const statusValue = statusFilter ? statusFilter.value : 'all';
+    
+    // Filter applications
+    let filteredApps = allApplications;
+    
+    // Apply search filter
+    if (searchTerm) {
+        filteredApps = filteredApps.filter(app => 
+            (app.company || '').toLowerCase().includes(searchTerm) ||
+            (app.role || '').toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Apply status filter
+    if (statusValue !== 'all') {
+        filteredApps = filteredApps.filter(app => app.status === statusValue);
+    }
+    
+    // Display filtered applications
+    displayFilteredApplications(filteredApps);
+    
+    // Update counter
+    updateCounter(filteredApps.length, allApplications.length);
+}
+
+/**
+ * Display filtered applications
+ */
+function displayFilteredApplications(apps) {
+    const applicationsContainer = document.getElementById('applications-container');
+    
+    // Clear container
+    applicationsContainer.innerHTML = '';
+    
+    // If no apps match filters
+    if (apps.length === 0) {
+        applicationsContainer.innerHTML = `
+            <div class="no-results">
+                <p>No applications match your filters</p>
+                <button onclick="clearFilters()" class="btn-clear-filters">Clear Filters</button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Display each application
+    apps.forEach(app => {
+        const appCard = createApplicationCard(app);
+        applicationsContainer.appendChild(appCard);
+    });
+}
+
+/**
+ * Update the counter text
+ */
+function updateCounter(filtered, total) {
+    if (!counterText) return;
+    
+    if (filtered === total) {
+        counterText.textContent = `Showing ${total} ${total === 1 ? 'application' : 'applications'}`;
+    } else {
+        counterText.textContent = `Showing ${filtered} of ${total} ${total === 1 ? 'application' : 'applications'}`;
+    }
+}
+/**
+ * Show loading state
+ */
+function showLoadingState() {
+    const applicationsContainer = document.getElementById('applications-container');
+    applicationsContainer.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading applications...</p>
+        </div>
+    `;
+}
+
+/**
+ * Clear all filters
+ */
+function clearFilters() {
+    if (searchInput) searchInput.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    applyFilters();
+}
+
+// ========================================
+// EVENT LISTENERS FOR FILTERS
+// ========================================
+
+// Search input - filter as user types
+if (searchInput) {
+    searchInput.addEventListener('input', applyFilters);
+}
+
+// Status filter - filter when selection changes
+if (statusFilter) {
+    statusFilter.addEventListener('change', applyFilters);
+}
 // ========================================
 // INITIALIZE APP
 // ========================================
