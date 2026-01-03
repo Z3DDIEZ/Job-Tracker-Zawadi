@@ -187,3 +187,173 @@ button[type="submit"]:disabled {
     cursor: not-allowed;
     transform: none;
 }
+
+/* ========================================
+   APPLICATION CARDS
+   ======================================== */
+
+.application-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.application-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.company-name {
+    font-size: 1.3rem;
+    color: #333;
+    margin: 0;
+    font-weight: 700;
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.status-applied {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.status-badge.status-phone-screen {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.status-badge.status-technical-interview {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.status-badge.status-final-round {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.status-badge.status-offer {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.status-badge.status-rejected {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+/* Card Body */
+.card-body {
+    margin-bottom: 1rem;
+}
+
+.role-title {
+    font-size: 1.1rem;
+    color: #555;
+    margin: 0 0 0.5rem 0;
+    font-weight: 500;
+}
+
+.date-applied {
+    font-size: 0.9rem;
+    color: #888;
+    margin: 0 0 0.5rem 0;
+}
+
+/* Visa Badge */
+.visa-badge {
+    display: inline-block;
+    background: #4caf50;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+/* Card Footer */
+.card-footer {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.btn-edit,
+.btn-delete {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: #667eea;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #5568d3;
+}
+
+.btn-delete {
+    background: #f44336;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+}
+
+/* Empty State */
+#no-apps-message {
+    text-align: center;
+    color: #999;
+    padding: 3rem;
+    font-style: italic;
+    font-size: 1.1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .company-name {
+        font-size: 1.1rem;
+    }
+    
+    .application-card {
+        padding: 1rem;
+    }
+}

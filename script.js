@@ -118,6 +118,134 @@ function showSuccessMessage(message) {
 // LOAD APPLICATIONS ON PAGE LOAD
 // ========================================
 
-// This will be built on Day 3
-// For now, we just log that the page loaded
 console.log('Page loaded. Ready to add applications.');
+
+/**
+ * Load and display existing applications from Firebase
+ */
+
+function loadApplications() {
+    const applicationsContainer = document.getElementById('applications-container');
+    const noAppsMessage = document.getElementById('no-apps-message');
+    
+    // Listen for data changes in Firebase
+    database.ref('applications').on('value', (snapshot) => {
+        const applications = snapshot.val();
+        
+        // If no applications exist
+        if (!applications) {
+            applicationsContainer.innerHTML = '<p id="no-apps-message">No applications yet. Add your first one above!</p>';
+            return;
+        }
+        
+        // Convert applications object to array
+        const applicationsArray = Object.keys(applications).map(key => {
+            return {
+                id: key,
+                ...applications[key]
+            };
+        });
+        
+        // Sort by timestamp (newest first)
+        applicationsArray.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Clear container
+        applicationsContainer.innerHTML = '';
+        
+        // Display each application
+        applicationsArray.forEach(app => {
+            const appCard = createApplicationCard(app);
+            applicationsContainer.appendChild(appCard);
+        });
+        
+        console.log(`📊 Loaded ${applicationsArray.length} applications`);
+    });
+}
+
+/**
+ * Create an application card HTML element
+ */
+function createApplicationCard(app) {
+    const card = document.createElement('div');
+    card.className = 'application-card';
+    card.dataset.id = app.id;
+    
+    // SAFE: Check if status exists before using toLowerCase
+    const statusClass = app.status 
+        ? app.status.toLowerCase().replace(/\s+/g, '-') 
+        : 'unknown';
+    
+    card.classList.add(`status-${statusClass}`);
+    
+    // SAFE: Format the date with fallback
+    let formattedDate = 'Date not set';
+    if (app.dateApplied) {
+        try {
+            formattedDate = new Date(app.dateApplied).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (e) {
+            formattedDate = app.dateApplied;
+        }
+    }
+    
+    // SAFE: Visa sponsorship badge with fallback
+    const visaBadge = app.visaSponsorship 
+        ? '<span class="visa-badge">✓ Visa Sponsorship</span>' 
+        : '';
+    
+    // SAFE: Status badge with fallback
+    const displayStatus = app.status || 'Unknown';
+    const statusBadge = `<span class="status-badge status-${statusClass}">${displayStatus}</span>`;
+    
+    // SAFE: Company and role with fallbacks
+    const company = app.company || 'Company not set';
+    const role = app.role || 'Role not set';
+    
+    // Build the card HTML
+    card.innerHTML = `
+        <div class="card-header">
+            <h3 class="company-name">${company}</h3>
+            ${statusBadge}
+        </div>
+        <div class="card-body">
+            <p class="role-title">${role}</p>
+            <p class="date-applied">Applied: ${formattedDate}</p>
+            ${visaBadge}
+        </div>
+        <div class="card-footer">
+            <button class="btn-edit" onclick="editApplication('${app.id}')">Edit</button>
+            <button class="btn-delete" onclick="deleteApplication('${app.id}')">Delete</button>
+        </div>
+    `;
+    
+    return card;
+}
+
+/**
+ * Edit application (Day 4 placeholder)
+ */
+function editApplication(id) {
+    console.log('Edit application:', id);
+    alert('Edit functionality coming in Day 4!');
+}
+
+/**
+ * Delete application (Day 4 placeholder)
+ */
+function deleteApplication(id) {
+    console.log('Delete application:', id);
+    alert('Delete functionality coming in Day 4!');
+}
+
+// ========================================
+// INITIALIZE APP
+// ========================================
+
+// Load applications when page loads
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 App initialized');
+    loadApplications();
+});
