@@ -357,3 +357,62 @@ button[type="submit"]:disabled {
         padding: 1rem;
     }
 }
+
+/* ========================================
+   EDIT MODE INDICATOR
+   ======================================== */
+
+.edit-mode-indicator {
+    background: #fff3e0;
+    border: 2px solid #f57c00;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease-out;
+}
+
+.edit-mode-indicator span {
+    color: #e65100;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.edit-mode-indicator strong {
+    color: #bf360c;
+}
+
+.btn-cancel-edit {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-cancel-edit:hover {
+    background: #d32f2f;
+}
+
+/* Update button styling when in edit mode */
+button[type="submit"].edit-mode {
+    background: linear-gradient(135deg, #f57c00 0%, #ff6f00 100%);
+}
+
+/* Mobile responsive for edit indicator */
+@media (max-width: 768px) {
+    .edit-mode-indicator {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .btn-cancel-edit {
+        width: 100%;
+    }
+}

@@ -31,17 +31,14 @@ form.addEventListener('submit', function(event) {
         return;
     }
     
-    // Log to console (for debugging)
-    console.log('Form data:', {
-        company,
-        role,
-        dateApplied,
-        status,
-        visaSponsorship
-    });
-    
-    // Call function to save to Firebase
-    addApplication(company, role, dateApplied, status, visaSponsorship);
+    // Check if we're in edit mode or add mode
+    if (currentEditId) {
+        // UPDATE MODE
+        updateApplication(currentEditId, company, role, dateApplied, status, visaSponsorship);
+    } else {
+        // ADD MODE
+        addApplication(company, role, dateApplied, status, visaSponsorship);
+    }
 });
 
 // ========================================
@@ -92,6 +89,49 @@ function addApplication(company, role, dateApplied, status, visaSponsorship) {
             // Re-enable submit button
             submitBtn.disabled = false;
             submitBtn.textContent = 'Add Application';
+        });
+}
+
+/**
+ * Update an existing application in Firebase
+ */
+function updateApplication(id, company, role, dateApplied, status, visaSponsorship) {
+    // Disable submit button while updating
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Updating...';
+    
+    // Data to update
+    const updatedData = {
+        company: company,
+        role: role,
+        dateApplied: dateApplied,
+        status: status,
+        visaSponsorship: visaSponsorship,
+        // Keep original timestamp, add updated timestamp
+        updatedAt: Date.now()
+    };
+    
+    // Update in Firebase
+    database.ref('applications/' + id).update(updatedData)
+        .then(() => {
+            console.log('✅ Application updated successfully');
+            
+            // Show success message
+            showSuccessMessage(`Application for ${company} updated successfully!`);
+            
+            // Reset form and exit edit mode
+            cancelEdit();
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+        })
+        .catch((error) => {
+            console.error('❌ Error updating application:', error);
+            alert('Error updating application. Check console for details.');
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Update Application';
         });
 }
 
@@ -224,20 +264,140 @@ function createApplicationCard(app) {
     return card;
 }
 
+// ========================================
+// EDIT & DELETE FUNCTIONS
+// ========================================
+
+// Track which application we're currently editing
+let currentEditId = null;
+
 /**
- * Edit application (Day 4 placeholder)
+ * Edit application - populate form with existing data
  */
 function editApplication(id) {
-    console.log('Edit application:', id);
-    alert('Edit functionality coming in Day 4!');
+    console.log('Editing application:', id);
+    
+    // Get the application data from Firebase
+    database.ref('applications/' + id).once('value')
+        .then((snapshot) => {
+            const app = snapshot.val();
+            
+            if (!app) {
+                alert('Application not found!');
+                return;
+            }
+            
+            // Populate form fields
+            document.getElementById('company').value = app.company || '';
+            document.getElementById('role').value = app.role || '';
+            document.getElementById('date').value = app.dateApplied || '';
+            document.getElementById('status').value = app.status || '';
+            document.getElementById('visa').checked = app.visaSponsorship || false;
+            
+            // Switch to edit mode
+            currentEditId = id;
+            submitBtn.textContent = 'Update Application';
+            submitBtn.style.background = 'linear-gradient(135deg, #f57c00 0%, #ff6f00 100%)';
+            
+            // Scroll to form
+            document.getElementById('add-application-section').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+            
+            // Show edit mode indicator
+            showEditModeIndicator(app.company);
+        })
+        .catch((error) => {
+            console.error('Error loading application:', error);
+            alert('Error loading application data');
+        });
 }
 
 /**
- * Delete application (Day 4 placeholder)
+ * Delete application with confirmation
  */
 function deleteApplication(id) {
-    console.log('Delete application:', id);
-    alert('Delete functionality coming in Day 4!');
+    console.log('Deleting application:', id);
+    
+    // Get application data to show company name in confirmation
+    database.ref('applications/' + id).once('value')
+        .then((snapshot) => {
+            const app = snapshot.val();
+            
+            if (!app) {
+                alert('Application not found!');
+                return;
+            }
+            
+            // Confirmation dialog
+            const confirmed = confirm(
+                `Are you sure you want to delete the application for ${app.company}?\n\n` +
+                `Role: ${app.role}\n` +
+                `This action cannot be undone.`
+            );
+            
+            if (confirmed) {
+                // Delete from Firebase
+                database.ref('applications/' + id).remove()
+                    .then(() => {
+                        console.log('✅ Application deleted successfully');
+                        showSuccessMessage(`Application for ${app.company} deleted`);
+                    })
+                    .catch((error) => {
+                        console.error('❌ Error deleting application:', error);
+                        alert('Error deleting application. Check console.');
+                    });
+            } else {
+                console.log('Delete cancelled by user');
+            }
+        })
+        .catch((error) => {
+            console.error('Error loading application:', error);
+            alert('Error loading application data');
+        });
+}
+
+/**
+ * Show edit mode indicator above form
+ */
+function showEditModeIndicator(companyName) {
+    // Remove existing indicator if any
+    const existingIndicator = document.getElementById('edit-mode-indicator');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+    
+    // Create new indicator
+    const indicator = document.createElement('div');
+    indicator.id = 'edit-mode-indicator';
+    indicator.className = 'edit-mode-indicator';
+    indicator.innerHTML = `
+        <span>✏️ Editing: <strong>${companyName}</strong></span>
+        <button onclick="cancelEdit()" class="btn-cancel-edit">Cancel</button>
+    `;
+    
+    // Insert before form
+    const formSection = document.getElementById('add-application-section');
+    const form = document.getElementById('application-form');
+    formSection.insertBefore(indicator, form);
+}
+
+/**
+ * Cancel edit mode and return to add mode
+ */
+function cancelEdit() {
+    currentEditId = null;
+    form.reset();
+    submitBtn.textContent = 'Add Application';
+    submitBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    
+    // Remove edit indicator
+    const indicator = document.getElementById('edit-mode-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+    
+    console.log('Edit cancelled - returned to add mode');
 }
 
 // ========================================
