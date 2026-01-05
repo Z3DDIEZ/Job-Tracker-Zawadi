@@ -21,31 +21,36 @@ A modern, full-stack web application for managing job applications and interview
 
 ### Core Functionality
 - **Full CRUD Operations** - Create, read, update, and delete job applications
-- **Real-Time Sync** - Instant updates across all devices using Firebase
-- **Search & Filter** - Find applications quickly by company name or status
-- **Status Tracking** - Monitor progress from "Applied" through "Offer"
+- **Real-Time Syncronisation** - Instant updates across all devices using Firebase Realtime Database
+- **Advanced Search & Filter** - Find applications quickly by company name or status
+- **Status Tracking** - Monitor progress in 6 stages: Applied → Phone Screen → Technical Interview → Final Round → Offer/Rejected
 - **Visa Sponsorship Flag** - Track which companies offer visa sponsorship
 
 ### User Experience
 - **Clean UI/UX** - Professional, minimal design with earthy color palette
-- **Mobile Responsive** - Optimized for desktop, tablet, and mobile devices
+- **Responsive Design** - Optimized for desktop (1920px), tablet (768px), and mobile (375px)
 - **Smooth Animations** - Subtle transitions and feedback for all interactions
 - **Persistent Storage** - Data saved securely in Firebase Realtime Database
 
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- HTML5
-- CSS3 (Custom properties, Grid, Flexbox)
-- Vanilla JavaScript (ES6+)
+- HTML5 - Semantic Markup
+- CSS3 (Custom properties, Grid, Flexbox, animations)
+- Vanilla JavaScript (ES6+, asyn/await, Promises)
 
 **Backend:**
-- Firebase Realtime Database
-- Firebase Hosting
+- Firebase Realtime Database (NoSQL, real-time sync)
+- Firebase Hosting (Path-based access control)
 
 **Development:**
 - Git & GitHub
 - GitHub Pages (deployment)
+
+**Design System:**
+- CSS Custom Properties
+- Mobile-first responsive design
+- Monochrome colour palette with terra cotta accents
 
 ## 🎯 Why I Built This
 
@@ -102,6 +107,18 @@ This project solved my own problem while demonstrating full-stack development sk
    - Test all CRUD operations
 
 ## 📁 Project Structure
+Job-Tracker-Zawadi/
+├── index.html              # Main HTML structure
+├── style.css               # Complete styling with CSS variables
+├── script.js               # Application logic and Firebase integration
+├── screenshots/            # Application screenshots
+│   ├── dashboard.png
+│   ├── card-detail.png
+│   └── mobile.png
+├── README.md              # This file
+└── .gitignore             # Git ignore rules
+
+
 ## 🔐 Security Notes
 
 - Firebase API keys are public by design (frontend apps)
@@ -144,7 +161,7 @@ This project is open source and available under the [MIT License](LICENSE).
 **Zawadi MC Nyachiya**
 - GitHub: [@Z3DDIEZ](https://github.com/Z3DDIEZ)
 - LinkedIn: [Zawadi MC Nyachiya](#) *(need to add my LinkedIn URL)*
-- Email: *(need to add my email)*
+- Email: nyachiya.zawadi@gmail.com
 
 ## 🙏 Acknowledgments
 
@@ -152,6 +169,9 @@ This project is open source and available under the [MIT License](LICENSE).
 - GitHub Pages for free hosting
 - The tech community for inspiration and resources
 
----
+## Project Status
+Current Version: 1.0.0 (Production-Ready MVP)
+Active Development: Yes
 
-**Built with ❤️ by Zawadi | Currently seeking Software Engineer roles in South Africa**
+
+**Built with ❤️ by Zawadi |Johannesburg, South Africa**

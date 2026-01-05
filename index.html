@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name = "description" content = "A simple job application tracker to help you manage your job applications, interviews, and offers. Built with HTML, CSS, JavaScript, and Firebase Realtime Database.">
+    <meta name="description" content="A simple job application tracker to help you manage your job applications, interviews, and offers. Built with HTML, CSS, JavaScript, and Firebase Realtime Database.">
     <title>Job Application Tracker | Zawadi MC Nyachiya</title>
     <!-- Link to CSS stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     
-    <!-- Content goes here -->
-	<!-- Header -->
+    <!-- Header -->
     <header>
         <h1>Job Application Tracker</h1>
         <p>Track your applications, interviews, and offers</p>
@@ -19,29 +18,46 @@
 
     <!-- Main Container -->
     <main>
-        <!-- Add Application Form -->
-        <section id="add-application-section">
+        <!-- Add Application Form Section -->
+        <section id="form-section">
             <h2>Add New Application</h2>
             <form id="application-form">
                 <div class="form-group">
                     <label for="company">Company Name *</label>
-                    <input type="text" id="company" name="company" required placeholder="e.g. Google">
+                    <input 
+                        type="text" 
+                        id="company" 
+                        name="company" 
+                        placeholder="e.g., Google, Microsoft" 
+                        required
+                    >
                 </div>
-
+                
                 <div class="form-group">
-                    <label for="role">Role *</label>
-                    <input type="text" id="role" name="role" required placeholder="e.g. Software Engineer">
+                    <label for="role">Job Role *</label>
+                    <input 
+                        type="text" 
+                        id="role" 
+                        name="role" 
+                        placeholder="e.g., Software Engineer, Data Analyst" 
+                        required
+                    >
                 </div>
-
+                
                 <div class="form-group">
                     <label for="date">Date Applied *</label>
-                    <input type="date" id="date" name="date" required>
+                    <input 
+                        type="date" 
+                        id="date" 
+                        name="date" 
+                        required
+                    >
                 </div>
-
+                
                 <div class="form-group">
-                    <label for="status">Status *</label>
+                    <label for="status">Application Status *</label>
                     <select id="status" name="status" required>
-                        <option value="">-- Select Status --</option>
+                        <option value="">Select status...</option>
                         <option value="Applied">Applied</option>
                         <option value="Phone Screen">Phone Screen</option>
                         <option value="Technical Interview">Technical Interview</option>
@@ -50,58 +66,107 @@
                         <option value="Rejected">Rejected</option>
                     </select>
                 </div>
-
-                <div class="form-group checkbox-group">
+                
+                <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" id="visa" name="visa">
-                        Visa Sponsorship Available
+                        <input 
+                            type="checkbox" 
+                            id="visa" 
+                            name="visa"
+                        >
+                        <span>Visa Sponsorship Available</span>
                     </label>
                 </div>
-
-                <button type="submit" id="submit-btn">Add Application</button>
+                
+                <button type="submit" id="submit-btn">
+                    <span>Add Application</span>
+                </button>
+                
+                <button 
+                    type="button" 
+                    id="cancel-btn" 
+                    class="btn-cancel" 
+                    style="display: none;"
+                    onclick="cancelEdit()"
+                >
+                    Cancel Edit
+                </button>
             </form>
         </section>
 
-      <!-- Applications Display -->
-<section id="applications-section">
-    <div class="section-header">
-        <h2>My Applications</h2>
-        <div class="filter-controls">
-            <!-- Search Bar -->
-            <div class="search-container">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    placeholder="🔍 Search by company name..." 
-                    class="search-input"
-                >
+        <!-- Applications Display Section -->
+        <section id="applications-section">
+            <div class="section-header">
+                <h2>My Applications</h2>
             </div>
             
-            <!-- Status Filter -->
-            <div class="filter-container">
-                <select id="status-filter" class="status-filter">
-                    <option value="all">All Statuses</option>
-                    <option value="Applied">Applied</option>
-                    <option value="Phone Screen">Phone Screen</option>
-                    <option value="Technical Interview">Technical Interview</option>
-                    <option value="Final Round">Final Round</option>
-                    <option value="Offer">Offer</option>
-                    <option value="Rejected">Rejected</option>
+            <!-- Advanced Filters -->
+            <div class="advanced-filters">
+                <div class="filter-group">
+                    <label for="search-input">Search</label>
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="Search by company or role..." 
+                        class="search-input"
+                    >
+                </div>
+                
+                <div class="filter-group">
+                    <label for="status-filter">Status</label>
+                    <select id="status-filter" class="status-filter">
+                        <option value="all">All Statuses</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Phone Screen">Phone Screen</option>
+                        <option value="Technical Interview">Technical Interview</option>
+                        <option value="Final Round">Final Round</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="date-range-filter">Date Range</label>
+                    <select id="date-range-filter" onchange="handleDateRangeChange(this.value)">
+                        <option value="all">All Time</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                        <option value="quarter">Last 90 Days</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="visa-filter">Visa Sponsorship</label>
+                    <select id="visa-filter" onchange="handleVisaFilterChange(this.value)">
+                        <option value="all">All</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Sort Controls -->
+            <div class="sort-controls">
+                <label for="sort-select">Sort by:</label>
+                <select id="sort-select" onchange="handleSortChange(this.value)">
+                    <option value="date-desc">Newest First</option>
+                    <option value="date-asc">Oldest First</option>
+                    <option value="company-asc">Company (A-Z)</option>
+                    <option value="company-desc">Company (Z-A)</option>
+                    <option value="status">Status</option>
                 </select>
             </div>
-        </div>
-    </div>
-    
-    <!-- Counter -->
-    <div id="applications-counter" class="applications-counter">
-        <span id="counter-text">Loading applications...</span>
-    </div>
-    
-    <!-- Applications Container -->
-    <div id="applications-container">
-        <p id="no-apps-message">No applications yet. Add your first one above!</p>
-    </div>
-</section>
+            
+            <!-- Counter -->
+            <div id="applications-counter" class="applications-counter">
+                <span id="counter-text">Loading applications...</span>
+            </div>
+            
+            <!-- Applications Container -->
+            <div id="applications-container">
+                <p id="no-apps-message">No applications yet. Add your first one above!</p>
+            </div>
+        </section>
     </main>
 
     <!-- Footer -->
@@ -131,6 +196,33 @@
 	  // Initialize Realtime Database
 	  const database = firebase.database();
 	</script>
+
+    <!-- Helper functions for filters -->
+    <script>
+        // Helper functions for new filters
+        function handleDateRangeChange(value) {
+            AppState.filters.dateRange = value;
+            processAndDisplayApplications();
+        }
+
+        function handleVisaFilterChange(value) {
+            AppState.filters.visaSponsorship = value;
+            processAndDisplayApplications();
+        }
+
+        function handleSortChange(value) {
+            SortManager.setSortPreference(value);
+            processAndDisplayApplications();
+        }
+
+        // Initialize sort dropdown on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const sortSelect = document.getElementById('sort-select');
+            if (sortSelect && AppState.sortBy) {
+                sortSelect.value = AppState.sortBy;
+            }
+        });
+    </script>
 
     <!-- Link to JavaScript file -->
     <script src="script.js"></script>
