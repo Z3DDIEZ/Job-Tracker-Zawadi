@@ -160,8 +160,8 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Zawadi MC Nyachiya**
 - GitHub: [@Z3DDIEZ](https://github.com/Z3DDIEZ)
-- LinkedIn: [Zawadi MC Nyachiya](#) *(need to add my LinkedIn URL)*
-- Email: nyachiya.zawadi@gmail.com
+- LinkedIn: [Zawadi MC Nyachiya](https://www.linkedin.com/in/zawadi-nyachiya-166164204)
+- Email: [Gmail](nyachiya.zawadi@gmail.com)
 
 ## 🙏 Acknowledgments
 
