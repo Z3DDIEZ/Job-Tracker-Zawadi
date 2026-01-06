@@ -12,7 +12,7 @@
     
     <!-- Header -->
     <header>
-        <h1>Job Application Tracker</h1>
+        <h1>Job Application Tracker | Zawadi MC Nyachiya</h1>
         <p>Track your applications, interviews, and offers</p>
     </header>
 
@@ -178,53 +178,7 @@
 	<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
 	<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 
-	<!-- Your Firebase configuration -->
-	<script>
-	  const firebaseConfig = {
-	  apiKey: "AIzaSyClonfK1u9vl-aj43Ipq8cNLGk9avqKlvE",
-	  authDomain: "job-tracker-zawadi.firebaseapp.com",
-	  databaseURL: "https://job-tracker-zawadi-default-rtdb.europe-west1.firebasedatabase.app",
-	  projectId: "job-tracker-zawadi",
-	  storageBucket: "job-tracker-zawadi.firebasestorage.app",
-	  messagingSenderId: "991350824064",
-	  appId: "1:991350824064:web:f838ef8be54f14d94cda65"
-	};
-
-	  // Initialize Firebase
-	  firebase.initializeApp(firebaseConfig);
-
-	  // Initialize Realtime Database
-	  const database = firebase.database();
-	</script>
-
-    <!-- Helper functions for filters -->
-    <script>
-        // Helper functions for new filters
-        function handleDateRangeChange(value) {
-            AppState.filters.dateRange = value;
-            processAndDisplayApplications();
-        }
-
-        function handleVisaFilterChange(value) {
-            AppState.filters.visaSponsorship = value;
-            processAndDisplayApplications();
-        }
-
-        function handleSortChange(value) {
-            SortManager.setSortPreference(value);
-            processAndDisplayApplications();
-        }
-
-        // Initialize sort dropdown on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const sortSelect = document.getElementById('sort-select');
-            if (sortSelect && AppState.sortBy) {
-                sortSelect.value = AppState.sortBy;
-            }
-        });
-    </script>
-
-    <!-- Link to JavaScript file -->
-    <script src="script.js"></script>
+    <!-- Vite entry point - TypeScript compiled to JavaScript -->
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
