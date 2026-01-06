@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A simple job application tracker to help you manage your job applications, interviews, and offers. Built with HTML, CSS, JavaScript, and Firebase Realtime Database.">
     <title>Job Application Tracker | Zawadi MC Nyachiya</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" href="/favicon.ico">
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com wss://*.firebasedatabase.app https://www.gstatic.com; font-src 'self' data:;">
     <!-- Link to CSS stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -87,7 +91,6 @@
                     id="cancel-btn" 
                     class="btn-cancel" 
                     style="display: none;"
-                    onclick="cancelEdit()"
                 >
                     Cancel Edit
                 </button>
@@ -146,7 +149,7 @@
                 
                 <div class="filter-group">
                     <label for="date-range-filter">Date Range</label>
-                    <select id="date-range-filter" onchange="handleDateRangeChange(this.value)">
+                    <select id="date-range-filter">
                         <option value="all">All Time</option>
                         <option value="week">Last 7 Days</option>
                         <option value="month">Last 30 Days</option>
@@ -156,7 +159,7 @@
                 
                 <div class="filter-group">
                     <label for="visa-filter">Visa Sponsorship</label>
-                    <select id="visa-filter" onchange="handleVisaFilterChange(this.value)">
+                    <select id="visa-filter">
                         <option value="all">All</option>
                         <option value="true">Yes</option>
                         <option value="false">No</option>
@@ -167,7 +170,7 @@
             <!-- Sort Controls -->
             <div class="sort-controls">
                 <label for="sort-select">Sort by:</label>
-                <select id="sort-select" onchange="handleSortChange(this.value)">
+                <select id="sort-select">
                     <option value="date-desc">Newest First</option>
                     <option value="date-asc">Oldest First</option>
                     <option value="company-asc">Company (A-Z)</option>

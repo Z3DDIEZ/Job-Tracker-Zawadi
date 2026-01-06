@@ -41,68 +41,13 @@ export const PaginationManager = {
 
   /**
    * Create pagination controls HTML
+   * DEPRECATED: Use createPaginationControlsSafe() instead for security
+   * Kept for backward compatibility but returns empty
    */
-  createPaginationControls(pagination: PaginationState): string {
-    if (pagination.totalPages <= 1) {
-      return '';
-    }
-
-    const prevDisabled = pagination.currentPage === 1 ? 'disabled' : '';
-    const nextDisabled =
-      pagination.currentPage === pagination.totalPages ? 'disabled' : '';
-
-    let pageButtons = '';
-
-    // Show page numbers (max 5 visible)
-    const maxVisible = 5;
-    let startPage = Math.max(
-      1,
-      pagination.currentPage - Math.floor(maxVisible / 2)
-    );
-    let endPage = Math.min(
-      pagination.totalPages,
-      startPage + maxVisible - 1
-    );
-
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    if (startPage > 1) {
-      pageButtons += `<button class="page-btn" data-page="1">1</button>`;
-      if (startPage > 2) {
-        pageButtons += `<span class="page-ellipsis">...</span>`;
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      const active = i === pagination.currentPage ? 'active' : '';
-      pageButtons += `<button class="page-btn ${active}" data-page="${i}">${i}</button>`;
-    }
-
-    if (endPage < pagination.totalPages) {
-      if (endPage < pagination.totalPages - 1) {
-        pageButtons += `<span class="page-ellipsis">...</span>`;
-      }
-      pageButtons += `<button class="page-btn" data-page="${pagination.totalPages}">${pagination.totalPages}</button>`;
-    }
-
-    return `
-      <div class="pagination-controls">
-        <button class="page-btn prev ${prevDisabled}" data-action="prev" ${prevDisabled ? 'disabled' : ''}>
-          ← Previous
-        </button>
-        <div class="page-numbers">
-          ${pageButtons}
-        </div>
-        <button class="page-btn next ${nextDisabled}" data-action="next" ${nextDisabled ? 'disabled' : ''}>
-          Next →
-        </button>
-        <div class="pagination-info">
-          Page ${pagination.currentPage} of ${pagination.totalPages}
-          (${pagination.totalItems} total)
-        </div>
-      </div>
-    `;
+  createPaginationControls(_pagination: PaginationState): string {
+    // This method is deprecated - use DOM creation instead
+    // Returning empty string to force use of safe method
+    console.warn('createPaginationControls() is deprecated. Use DOM creation instead.');
+    return '';
   },
 };

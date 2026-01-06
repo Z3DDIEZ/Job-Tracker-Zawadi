@@ -25,17 +25,92 @@ import { createStatCard } from './components/stats/StatCard';
 import { createStatusDistributionChart } from './components/charts/StatusDistributionChart';
 import { PaginationManager } from './utils/pagination';
 import { createTableView, type ViewMode } from './utils/viewModes';
+import {
+  validateApplicationId,
+  escapeHtml,
+  sanitizeUserInput,
+  rateLimiter,
+} from './utils/security';
+import { securityLogger } from './utils/securityLogger';
+import {
+  secureFirebaseRef,
+  secureFirebaseUpdate,
+  secureFirebaseDelete,
+  secureFirebaseRead,
+} from './utils/firebaseSecurity';
+import { createApplicationCardSafe } from './utils/domHelpers';
 import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
 // Firebase initialization
-let database: firebase.database.Database;
+let database: firebase.database.Database | undefined;
 
 // Initialize Firebase
-function initializeFirebase(): void {
-  const config = getFirebaseConfig();
-  const app = firebase.initializeApp(config);
-  database = app.database();
-  console.log('🔥 Firebase initialized');
+function initializeFirebase(): boolean {
+  try {
+    const config = getFirebaseConfig();
+    
+    // Check if config is valid (not all MISSING)
+    const hasMissingConfig = Object.values(config).some((value) => value === 'MISSING');
+    
+    if (hasMissingConfig) {
+      showFirebaseConfigError();
+      database = undefined;
+      return false;
+    }
+    
+    const app = firebase.initializeApp(config);
+    database = app.database();
+    console.log('🔥 Firebase initialized');
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    showFirebaseConfigError();
+    database = undefined;
+    return false;
+  }
+}
+
+// Check if Firebase is ready
+function isFirebaseReady(): boolean {
+  return database !== undefined;
+}
+
+// Show user-friendly Firebase config error
+function showFirebaseConfigError(): void {
+  const applicationsSection = document.getElementById('applications-section');
+  if (!applicationsSection) return;
+  
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'firebase-config-error';
+  errorDiv.style.cssText = `
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin: 2rem auto;
+    max-width: 600px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  `;
+  
+  errorDiv.innerHTML = `
+    <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">⚠️ Firebase Configuration Required</h2>
+    <p style="margin: 0 0 1rem 0; line-height: 1.6;">
+      To use this application, you need to configure Firebase credentials.
+    </p>
+    <ol style="margin: 0 0 1rem 0; padding-left: 1.5rem; line-height: 1.8;">
+      <li>Copy <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env.example</code> to <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env</code></li>
+      <li>Get your Firebase config from <a href="https://console.firebase.google.com" target="_blank" style="color: #fbbf24; text-decoration: underline;">Firebase Console</a></li>
+      <li>Fill in the values in <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env</code></li>
+      <li>Restart the dev server: <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">npm run dev</code></li>
+    </ol>
+    <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">
+      See <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">README.md</code> or <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">AI Markdown Assistance/SETUP.md</code> for detailed instructions.
+    </p>
+  `;
+  
+  // Clear existing content and show error
+  applicationsSection.innerHTML = '';
+  applicationsSection.appendChild(errorDiv);
 }
 
 // DOM Elements
@@ -77,12 +152,19 @@ form?.addEventListener('submit', function (event) {
   const errors = Validators.validateApplication(company, role, dateApplied, status);
 
   if (errors.length > 0) {
+    // Log validation failures
+    securityLogger.log({
+      type: 'validation_failed',
+      message: 'Form validation failed',
+      details: { errors: errors.map((e) => e.field) },
+    });
     displayValidationErrors(errors);
     return;
   }
 
-  const sanitizedCompany = Validators.sanitizeInput(company);
-  const sanitizedRole = Validators.sanitizeInput(role);
+  // Sanitize inputs (length limit and clean)
+  const sanitizedCompany = sanitizeUserInput(company, 100);
+  const sanitizedRole = sanitizeUserInput(role, 100);
 
   const editId = currentEditId.get();
   if (editId) {
@@ -141,10 +223,29 @@ function addApplication(
 ): void {
   if (!submitBtn) return;
 
+  // Rate limiting check
+  if (!rateLimiter.isAllowed('add-application')) {
+    securityLogger.log({
+      type: 'rate_limited',
+      message: 'Rate limit exceeded for add-application',
+      details: { operation: 'add-application' },
+    });
+    showErrorMessage('Too many requests. Please wait a moment before adding another application.');
+    return;
+  }
+
+  if (!isFirebaseReady()) {
+    showErrorMessage('Firebase not configured. Please set up your .env file.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Application';
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Saving...';
 
-  const newApplicationRef = database.ref('applications').push();
+  // Use secure Firebase reference (no ID needed for push)
+  const newApplicationRef = secureFirebaseRef(database!, 'applications').push();
 
   const applicationData: JobApplication = {
     company,
@@ -196,9 +297,15 @@ function updateApplication(
     updatedAt: Date.now(),
   };
 
-  database
-    .ref('applications/' + id)
-    .update(updatedData)
+  if (!isFirebaseReady()) {
+    showErrorMessage('Firebase not configured. Please set up your .env file.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Update Application';
+    return;
+  }
+
+  // Use secure Firebase wrapper
+  secureFirebaseUpdate(database!, 'applications', id, updatedData)
     .then(() => {
       console.log('✅ Application updated successfully');
       showSuccessMessage(`Application for ${company} updated successfully!`);
@@ -209,6 +316,13 @@ function updateApplication(
     })
     .catch((error: unknown) => {
       console.error('❌ Error updating application:', error);
+      
+      securityLogger.log({
+        type: 'unauthorized_access',
+        message: 'Failed to update application',
+        details: { operation: 'update-application', id, error: String(error).substring(0, 100) },
+      });
+      
       showErrorMessage('Failed to update application. Please try again.');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Update Application';
@@ -216,12 +330,31 @@ function updateApplication(
 }
 
 export function deleteApplication(id: string): void {
+  // Validate application ID to prevent injection
+  try {
+    validateApplicationId(id);
+  } catch (error) {
+    showErrorMessage('Invalid application ID. Operation cancelled.');
+    console.error('Security: Invalid ID attempted:', error);
+    return;
+  }
+
+  // Rate limiting check
+  if (!rateLimiter.isAllowed('delete-application')) {
+    showErrorMessage('Too many requests. Please wait a moment before deleting again.');
+    return;
+  }
+
+  if (!isFirebaseReady()) {
+    showErrorMessage('Firebase not configured. Please set up your .env file.');
+    return;
+  }
+
   console.log('Deleting application:', id);
 
-  database
-    .ref('applications/' + id)
-    .once('value')
-    .then((snapshot) => {
+  // Use secure Firebase read
+  secureFirebaseRead(database!, 'applications', id)
+    .then((snapshot: firebase.database.DataSnapshot) => {
       const app = snapshot.val() as JobApplication | null;
 
       if (!app) {
@@ -230,28 +363,41 @@ export function deleteApplication(id: string): void {
       }
 
       const confirmed = confirm(
-        `Are you sure you want to delete the application for ${app.company}?\n\n` +
-          `Role: ${app.role}\n` +
+        `Are you sure you want to delete the application for ${escapeHtml(app.company || 'Unknown')}?\n\n` +
+          `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
           `This action cannot be undone.`
       );
 
       if (confirmed) {
-        database
-          .ref('applications/' + id)
-          .remove()
+        // Use secure Firebase delete
+        secureFirebaseDelete(database!, 'applications', id)
           .then(() => {
             console.log('✅ Application deleted successfully');
-            showSuccessMessage(`Application for ${app.company} deleted`);
+            showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
             CacheManager.invalidate();
           })
           .catch((error: unknown) => {
             console.error('❌ Error deleting application:', error);
+            
+            securityLogger.log({
+              type: 'unauthorized_access',
+              message: 'Failed to delete application',
+              details: { operation: 'delete-application', id, error: String(error).substring(0, 100) },
+            });
+            
             showErrorMessage('Failed to delete application. Please try again.');
           });
       }
     })
     .catch((error: unknown) => {
       console.error('Error loading application:', error);
+      
+      securityLogger.log({
+        type: 'unauthorized_access',
+        message: 'Failed to load application for deletion',
+        details: { operation: 'delete-application', id, error: String(error).substring(0, 100) },
+      });
+      
       showErrorMessage('Error loading application data');
     });
 }
@@ -261,12 +407,25 @@ export function deleteApplication(id: string): void {
 // ========================================
 
 export function editApplication(id: string): void {
+  if (!database) {
+    showErrorMessage('Firebase not configured. Please set up your .env file.');
+    return;
+  }
+
+  // Validate application ID to prevent injection
+  try {
+    validateApplicationId(id);
+  } catch (error) {
+    showErrorMessage('Invalid application ID. Operation cancelled.');
+    console.error('Security: Invalid ID attempted:', error);
+    return;
+  }
+
   console.log('Editing application:', id);
 
-  database
-    .ref('applications/' + id)
-    .once('value')
-    .then((snapshot) => {
+  // Use secure Firebase read
+  secureFirebaseRead(database!, 'applications', id)
+    .then((snapshot: firebase.database.DataSnapshot) => {
       const app = snapshot.val() as JobApplication | null;
 
       if (!app) {
@@ -317,10 +476,20 @@ function showEditModeIndicator(companyName: string): void {
   const indicator = document.createElement('div');
   indicator.id = 'edit-mode-indicator';
   indicator.className = 'edit-mode-indicator';
-  indicator.innerHTML = `
-        <span>✏️ Editing: <strong>${companyName}</strong></span>
-        <button onclick="cancelEdit()" class="btn-cancel-edit">Cancel</button>
-    `;
+
+  const span = document.createElement('span');
+  const strong = document.createElement('strong');
+  strong.textContent = escapeHtml(companyName);
+  span.appendChild(document.createTextNode('✏️ Editing: '));
+  span.appendChild(strong);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn-cancel-edit';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', cancelEdit);
+
+  indicator.appendChild(span);
+  indicator.appendChild(cancelBtn);
 
   const formSection = document.getElementById('form-section');
   const form = document.getElementById('application-form');
@@ -404,6 +573,19 @@ function showInfoMessage(message: string): void {
 // ========================================
 
 function loadApplications(): void {
+  // Check if Firebase is initialized
+  if (!isFirebaseReady()) {
+    console.warn('⚠️ Cannot load applications: Firebase not initialized');
+    // Try to load from cache only
+    const cached = CacheManager.load();
+    if (cached && cached.length > 0) {
+      console.log('📦 Loading from cache only (Firebase not configured)...');
+      setApplications(cached);
+      processAndDisplayApplications();
+    }
+    return;
+  }
+
   // Try to load from cache first
   const cached = CacheManager.load();
   if (cached && cached.length > 0) {
@@ -415,20 +597,24 @@ function loadApplications(): void {
   // Show loading state
   showLoadingState();
 
-  // Listen for data changes in Firebase
-  database.ref('applications').on('value', (snapshot: firebase.database.DataSnapshot) => {
+  // Listen for data changes in Firebase (path is whitelisted, no user input)
+  const applicationsRef = secureFirebaseRef(database!, 'applications');
+  applicationsRef.on('value', (snapshot: firebase.database.DataSnapshot) => {
     const applicationsData = snapshot.val() as Record<string, Omit<JobApplication, 'id'>> | null;
 
-    if (!applicationsData) {
-      if (applicationsContainer) {
-        applicationsContainer.innerHTML =
-          '<p id="no-apps-message">No applications yet. Add your first one above!</p>';
-      }
-      updateCounter(0, 0);
-      setApplications([]);
-      setFilteredApplications([]);
-      return;
+  if (!applicationsData) {
+    if (applicationsContainer) {
+      applicationsContainer.innerHTML = '';
+      const message = document.createElement('p');
+      message.id = 'no-apps-message';
+      message.textContent = 'No applications yet. Add your first one above!';
+      applicationsContainer.appendChild(message);
     }
+    updateCounter(0, 0);
+    setApplications([]);
+    setFilteredApplications([]);
+    return;
+  }
 
     // Convert to array
     const applicationsArray: JobApplication[] = Object.keys(applicationsData)
@@ -500,12 +686,22 @@ function displayApplications(apps: JobApplication[]): void {
   applicationsContainer.innerHTML = '';
 
   if (apps.length === 0) {
-    applicationsContainer.innerHTML = `
-            <div class="no-results">
-                <p>No applications match your filters</p>
-                <button onclick="clearAllFilters()" class="btn-clear-filters">Clear Filters</button>
-            </div>
-        `;
+    applicationsContainer.innerHTML = '';
+    
+    const noResults = document.createElement('div');
+    noResults.className = 'no-results';
+    
+    const message = document.createElement('p');
+    message.textContent = 'No applications match your filters';
+    
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'btn-clear-filters';
+    clearBtn.textContent = 'Clear Filters';
+    clearBtn.addEventListener('click', clearAllFilters);
+    
+    noResults.appendChild(message);
+    noResults.appendChild(clearBtn);
+    applicationsContainer.appendChild(noResults);
     return;
   }
 
@@ -531,14 +727,100 @@ function displayApplications(apps: JobApplication[]): void {
 
   // Add pagination controls if needed
   if (pagination.totalPages > 1) {
-    const paginationHTML = PaginationManager.createPaginationControls(pagination);
-    const paginationDiv = document.createElement('div');
-    paginationDiv.innerHTML = paginationHTML;
+    const paginationDiv = createPaginationControlsSafe(pagination);
     applicationsContainer.appendChild(paginationDiv);
 
     // Attach pagination event listeners
     attachPaginationListeners(pagination);
   }
+}
+
+function createPaginationControlsSafe(pagination: ReturnType<typeof PaginationManager.calculatePagination>): HTMLDivElement {
+  const container = document.createElement('div');
+  container.className = 'pagination-controls';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = `page-btn prev ${pagination.currentPage === 1 ? 'disabled' : ''}`;
+  prevBtn.textContent = '← Previous';
+  prevBtn.dataset.action = 'prev';
+  if (pagination.currentPage === 1) {
+    prevBtn.disabled = true;
+  }
+  container.appendChild(prevBtn);
+
+  const pageNumbers = document.createElement('div');
+  pageNumbers.className = 'page-numbers';
+
+  // Calculate visible page range
+  const maxVisible = 5;
+  let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
+  let endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
+
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  // First page
+  if (startPage > 1) {
+    const firstBtn = document.createElement('button');
+    firstBtn.className = 'page-btn';
+    firstBtn.textContent = '1';
+    firstBtn.dataset.page = '1';
+    pageNumbers.appendChild(firstBtn);
+
+    if (startPage > 2) {
+      const ellipsis = document.createElement('span');
+      ellipsis.className = 'page-ellipsis';
+      ellipsis.textContent = '...';
+      pageNumbers.appendChild(ellipsis);
+    }
+  }
+
+  // Page numbers
+  for (let i = startPage; i <= endPage; i++) {
+    const pageBtn = document.createElement('button');
+    pageBtn.className = `page-btn ${i === pagination.currentPage ? 'active' : ''}`;
+    pageBtn.textContent = String(i);
+    pageBtn.dataset.page = String(i);
+    if (i === pagination.currentPage) {
+      pageBtn.classList.add('active');
+    }
+    pageNumbers.appendChild(pageBtn);
+  }
+
+  // Last page
+  if (endPage < pagination.totalPages) {
+    if (endPage < pagination.totalPages - 1) {
+      const ellipsis = document.createElement('span');
+      ellipsis.className = 'page-ellipsis';
+      ellipsis.textContent = '...';
+      pageNumbers.appendChild(ellipsis);
+    }
+
+    const lastBtn = document.createElement('button');
+    lastBtn.className = 'page-btn';
+    lastBtn.textContent = String(pagination.totalPages);
+    lastBtn.dataset.page = String(pagination.totalPages);
+    pageNumbers.appendChild(lastBtn);
+  }
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = `page-btn next ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}`;
+  nextBtn.textContent = 'Next →';
+  nextBtn.dataset.action = 'next';
+  if (pagination.currentPage === pagination.totalPages) {
+    nextBtn.disabled = true;
+  }
+
+  const info = document.createElement('div');
+  info.className = 'pagination-info';
+  info.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages} (${pagination.totalItems} total)`;
+
+  container.appendChild(pageNumbers);
+  container.appendChild(nextBtn);
+  container.appendChild(info);
+
+  return container;
 }
 
 function displayAnalyticsDashboard(apps: JobApplication[]): void {
@@ -579,13 +861,22 @@ function displayInsights(insights: string[]): void {
   const insightsDiv = document.createElement('div');
   insightsDiv.id = 'analytics-insights';
   insightsDiv.className = 'analytics-insights';
-  insightsDiv.innerHTML = `
-    <div class="chart-title">💡 Insights</div>
-    <ul class="insights-list">
-      ${insights.map((insight) => `<li>${insight}</li>`).join('')}
-    </ul>
-  `;
 
+  const title = document.createElement('div');
+  title.className = 'chart-title';
+  title.textContent = '💡 Insights';
+
+  const list = document.createElement('ul');
+  list.className = 'insights-list';
+
+  insights.forEach((insight) => {
+    const li = document.createElement('li');
+    li.textContent = insight; // Safe - insights come from our service, not user input
+    list.appendChild(li);
+  });
+
+  insightsDiv.appendChild(title);
+  insightsDiv.appendChild(list);
   chartsContainer.appendChild(insightsDiv);
 }
 
@@ -624,15 +915,23 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
 
   chartsContainer.innerHTML = '';
 
-  // Status Distribution Chart
+  // Status Distribution Chart (safe DOM creation)
   const chartContainer = document.createElement('div');
   chartContainer.className = 'chart-container';
-  chartContainer.innerHTML = `
-    <div class="chart-title">Status Distribution</div>
-    <div class="chart-wrapper">
-      <canvas id="status-chart"></canvas>
-    </div>
-  `;
+
+  const chartTitle = document.createElement('div');
+  chartTitle.className = 'chart-title';
+  chartTitle.textContent = 'Status Distribution';
+
+  const chartWrapper = document.createElement('div');
+  chartWrapper.className = 'chart-wrapper';
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'status-chart';
+
+  chartWrapper.appendChild(canvas);
+  chartContainer.appendChild(chartTitle);
+  chartContainer.appendChild(chartWrapper);
   chartsContainer.appendChild(chartContainer);
 
   // Render chart after DOM is ready
@@ -713,54 +1012,42 @@ export function switchViewMode(mode: ViewMode): void {
 }
 
 function createApplicationCard(app: JobApplication): HTMLDivElement {
-  const card = document.createElement('div');
-  card.className = 'application-card';
-  card.dataset.id = app.id;
-
-  const statusClass = app.status
-    ? app.status.toLowerCase().replace(/\s+/g, '-')
-    : 'unknown';
-
-  card.classList.add(`status-${statusClass}`);
-
-  let formattedDate = 'Date not set';
-  if (app.dateApplied) {
-    try {
-      formattedDate = new Date(app.dateApplied).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+  // Use safe DOM creation (no innerHTML)
+  const card = createApplicationCardSafe(app);
+  
+  // Attach event listeners using event delegation pattern
+  const editBtn = card.querySelector('.btn-edit[data-action="edit"]');
+  const deleteBtn = card.querySelector('.btn-delete[data-action="delete"]');
+  
+  if (editBtn && editBtn instanceof HTMLElement) {
+    const appId = editBtn.dataset.appId;
+    if (appId) {
+      editBtn.addEventListener('click', () => {
+        try {
+          validateApplicationId(appId);
+          editApplication(appId);
+        } catch (error) {
+          showErrorMessage('Invalid application ID');
+          console.error('Security: Invalid edit attempt', error);
+        }
       });
-    } catch (e) {
-      formattedDate = app.dateApplied;
     }
   }
-
-  const visaBadge = app.visaSponsorship
-    ? '<span class="visa-badge">✓ Visa Sponsorship</span>'
-    : '';
-
-  const displayStatus = app.status || 'Unknown';
-  const statusBadge = `<span class="status-badge status-${statusClass}">${displayStatus}</span>`;
-
-  const company = app.company || 'Company not set';
-  const role = app.role || 'Role not set';
-
-  card.innerHTML = `
-        <div class="card-header">
-            <h3 class="company-name">${company}</h3>
-            ${statusBadge}
-        </div>
-        <div class="card-body">
-            <p class="role-title">${role}</p>
-            <p class="date-applied">Applied: ${formattedDate}</p>
-            ${visaBadge}
-        </div>
-        <div class="card-footer">
-            <button class="btn-edit" onclick="editApplication('${app.id}')">Edit</button>
-            <button class="btn-delete" onclick="deleteApplication('${app.id}')">Delete</button>
-        </div>
-    `;
+  
+  if (deleteBtn && deleteBtn instanceof HTMLElement) {
+    const appId = deleteBtn.dataset.appId;
+    if (appId) {
+      deleteBtn.addEventListener('click', () => {
+        try {
+          validateApplicationId(appId);
+          deleteApplication(appId);
+        } catch (error) {
+          showErrorMessage('Invalid application ID');
+          console.error('Security: Invalid delete attempt', error);
+        }
+      });
+    }
+  }
 
   return card;
 }
@@ -818,12 +1105,20 @@ function showLoadingState(): void {
   if (!applicationsContainer) return;
 
   if (!CacheManager.getCacheData().isValid) {
-    applicationsContainer.innerHTML = `
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Loading applications...</p>
-            </div>
-        `;
+    applicationsContainer.innerHTML = '';
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-state';
+
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+
+    const message = document.createElement('p');
+    message.textContent = 'Loading applications...';
+
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(message);
+    applicationsContainer.appendChild(loadingDiv);
   }
 }
 
@@ -852,7 +1147,13 @@ export function handleSortChange(value: string): void {
 
 window.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App initialized (Enhanced v2.0 with TypeScript)');
-  initializeFirebase();
+  
+  // Initialize Firebase and only load applications if successful
+  const firebaseInitialized = initializeFirebase();
+  
+  if (firebaseInitialized) {
+    loadApplications();
+  }
   
   // Subscribe to store changes
   filters.subscribe(() => {
@@ -863,12 +1164,6 @@ window.addEventListener('DOMContentLoaded', () => {
     processAndDisplayApplications();
   });
 
-  // Initialize sort dropdown
-  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
-  if (sortSelect) {
-    sortSelect.value = sortBy.get().value;
-  }
-
   // Initialize view mode buttons
   document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -877,6 +1172,67 @@ window.addEventListener('DOMContentLoaded', () => {
         switchViewMode(mode);
       }
     });
+  });
+
+  // Initialize filter event listeners (replacing inline handlers)
+  const dateRangeFilter = document.getElementById('date-range-filter') as HTMLSelectElement;
+  const visaFilter = document.getElementById('visa-filter') as HTMLSelectElement;
+  const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
+  const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
+
+  // Initialize sort dropdown
+  if (sortSelect) {
+    sortSelect.value = sortBy.get().value;
+  }
+
+  if (dateRangeFilter) {
+    dateRangeFilter.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      handleDateRangeChange(target.value);
+    });
+  }
+
+  if (visaFilter) {
+    visaFilter.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      handleVisaFilterChange(target.value);
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      handleSortChange(target.value);
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', cancelEdit);
+  }
+
+  // Event delegation for table actions (handles dynamically created buttons)
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    
+    // Handle table row actions
+    if (target.classList.contains('btn-edit-small') || target.classList.contains('btn-delete-small')) {
+      const action = target.dataset.action;
+      const appId = target.dataset.appId;
+      
+      if (appId) {
+        try {
+          validateApplicationId(appId);
+          if (action === 'edit') {
+            editApplication(appId);
+          } else if (action === 'delete') {
+            deleteApplication(appId);
+          }
+        } catch (error) {
+          showErrorMessage('Invalid application ID');
+          console.error('Security: Invalid action attempt', error);
+        }
+      }
+    }
   });
 
   loadApplications();

@@ -1,37 +1,37 @@
 /**
  * Input Validation Utilities
  * Ensures data integrity and prevents XSS attacks
+ * 
+ * NOTE: Enhanced validation moved to inputValidation.ts
+ * This file maintained for backward compatibility
  */
 
 import type { ValidationError } from '@/types';
+import { SecurityValidators } from './inputValidation';
+import { sanitizeUserInput } from './security';
 
 export const Validators = {
   isValidDate(dateString: string): boolean {
-    const date = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Check if date is valid and not in the future
-    return date instanceof Date && !isNaN(date.getTime()) && date <= today;
+    const validation = SecurityValidators.validateDate(dateString);
+    return validation.valid;
   },
 
   isValidCompanyName(name: string): boolean {
-    // Must be 2-100 characters, no special chars except spaces, hyphens, ampersands
-    const regex = /^[a-zA-Z0-9\s\-&]{2,100}$/;
-    return regex.test(name.trim());
+    const validation = SecurityValidators.validateCompanyName(name);
+    return validation.valid;
   },
 
   isValidRole(role: string): boolean {
-    // Must be 2-100 characters
-    const regex = /^[a-zA-Z0-9\s\-\/]{2,100}$/;
-    return regex.test(role.trim());
+    const validation = SecurityValidators.validateRole(role);
+    return validation.valid;
   },
 
+  /**
+   * Sanitize input - removes HTML and limits length
+   * Use escapeHtml() for display, sanitizeUserInput() for storage
+   */
   sanitizeInput(input: string): string {
-    // Remove potential XSS attacks
-    const temp = document.createElement('div');
-    temp.textContent = input;
-    return temp.innerHTML;
+    return sanitizeUserInput(input, 100);
   },
 
   validateApplication(
@@ -40,37 +40,6 @@ export const Validators = {
     dateApplied: string,
     status: string
   ): ValidationError[] {
-    const errors: ValidationError[] = [];
-
-    if (!this.isValidCompanyName(company)) {
-      errors.push({
-        field: 'company',
-        message:
-          'Company name must be 2-100 characters (letters, numbers, spaces, hyphens)',
-      });
-    }
-
-    if (!this.isValidRole(role)) {
-      errors.push({
-        field: 'role',
-        message: 'Role must be 2-100 characters',
-      });
-    }
-
-    if (!this.isValidDate(dateApplied)) {
-      errors.push({
-        field: 'date',
-        message: 'Date cannot be in the future',
-      });
-    }
-
-    if (!status) {
-      errors.push({
-        field: 'status',
-        message: 'Please select a status',
-      });
-    }
-
-    return errors;
+    return SecurityValidators.validateApplication(company, role, dateApplied, status);
   },
 };

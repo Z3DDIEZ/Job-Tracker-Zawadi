@@ -1,35 +1,76 @@
 /**
  * Firebase Configuration
- * Loads config from environment variables or falls back to inline config
+ * Loads config from environment variables
+ * 
+ * SECURITY: No hardcoded credentials allowed
+ * All config must come from environment variables
  */
 
 import type { FirebaseConfig } from '@/types';
 
-// Get Firebase config from environment variables or use defaults
+// Get Firebase config from environment variables
 export function getFirebaseConfig(): FirebaseConfig {
-  // In development, use environment variables
-  if (import.meta.env.VITE_FIREBASE_API_KEY) {
+  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+  const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+  const databaseURL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+  const storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+  const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+  const appId = import.meta.env.VITE_FIREBASE_APP_ID;
+
+  // Validate all required environment variables are present
+  if (!apiKey || !authDomain || !databaseURL || !projectId || !storageBucket || !messagingSenderId || !appId) {
+    const missingVars: string[] = [];
+    if (!apiKey) missingVars.push('VITE_FIREBASE_API_KEY');
+    if (!authDomain) missingVars.push('VITE_FIREBASE_AUTH_DOMAIN');
+    if (!databaseURL) missingVars.push('VITE_FIREBASE_DATABASE_URL');
+    if (!projectId) missingVars.push('VITE_FIREBASE_PROJECT_ID');
+    if (!storageBucket) missingVars.push('VITE_FIREBASE_STORAGE_BUCKET');
+    if (!messagingSenderId) missingVars.push('VITE_FIREBASE_MESSAGING_SENDER_ID');
+    if (!appId) missingVars.push('VITE_FIREBASE_APP_ID');
+
+    console.error('❌ Firebase configuration incomplete. Missing environment variables:');
+    console.error(missingVars.join(', '));
+    console.error('\n📝 To fix this:');
+    console.error('1. Copy .env.example to .env');
+    console.error('2. Fill in your Firebase credentials from https://console.firebase.google.com');
+    console.error('3. Restart the dev server (npm run dev)');
+    
+    // In development, show helpful error but don't crash - let the app show a message
+    if (import.meta.env.DEV) {
+      // Return a config that will fail gracefully when Firebase tries to initialize
+      // This allows the app to show a user-friendly message instead of crashing
+      return {
+        apiKey: apiKey || 'MISSING',
+        authDomain: authDomain || 'MISSING',
+        databaseURL: databaseURL || 'MISSING',
+        projectId: projectId || 'MISSING',
+        storageBucket: storageBucket || 'MISSING',
+        messagingSenderId: messagingSenderId || 'MISSING',
+        appId: appId || 'MISSING',
+      };
+    }
+    
+    // In production, use minimal fallback (user should set env vars)
+    // This is a last resort - should not happen in proper deployment
     return {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-      databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      apiKey: apiKey || '',
+      authDomain: authDomain || '',
+      databaseURL: databaseURL || '',
+      projectId: projectId || '',
+      storageBucket: storageBucket || '',
+      messagingSenderId: messagingSenderId || '',
+      appId: appId || '',
     };
   }
 
-  // Fallback to inline config (for GitHub Pages deployment)
-  // This will be replaced by build-time injection or kept as fallback
   return {
-    apiKey: 'AIzaSyClonfK1u9vl-aj43Ipq8cNLGk9avqKlvE',
-    authDomain: 'job-tracker-zawadi.firebaseapp.com',
-    databaseURL:
-      'https://job-tracker-zawadi-default-rtdb.europe-west1.firebasedatabase.app',
-    projectId: 'job-tracker-zawadi',
-    storageBucket: 'job-tracker-zawadi.firebasestorage.app',
-    messagingSenderId: '991350824064',
-    appId: '1:991350824064:web:f838ef8be54f14d94cda65',
+    apiKey,
+    authDomain,
+    databaseURL,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
   };
 }

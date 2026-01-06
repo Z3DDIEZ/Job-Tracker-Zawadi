@@ -26,10 +26,6 @@ export default defineConfig({
     port: 3000,
     open: true,
   },
-  // Environment variables
-  define: {
-    'import.meta.env.VITE_FIREBASE_API_KEY': JSON.stringify(
-      process.env.VITE_FIREBASE_API_KEY || ''
-    ),
-  },
+  // Vite automatically loads .env files - no need for manual define
+  // All VITE_* variables are automatically available via import.meta.env
 });
