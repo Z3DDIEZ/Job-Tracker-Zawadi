@@ -1,6 +1,6 @@
 # Job Application Tracker
 
-A modern, full-stack web application for managing job applications and interview processes. Built with vanilla JavaScript and Firebase Realtime Database.
+A modern, full-stack web application for managing job applications and interview processes. Built with TypeScript, Vite, and Firebase Realtime Database. A data-driven job search assistant and personal productivity platform.
 
 ## 🚀 Live Demo
 
@@ -37,7 +37,15 @@ A modern, full-stack web application for managing job applications and interview
 **Frontend:**
 - HTML5 - Semantic Markup
 - CSS3 (Custom properties, Grid, Flexbox, animations)
-- Vanilla JavaScript (ES6+, asyn/await, Promises)
+- TypeScript - Type-safe development
+- Vanilla JavaScript (ES6+, async/await, Promises)
+
+**State Management:**
+- Nanostores - Lightweight, reactive state management
+
+**Build Tools:**
+- Vite - Fast build tool and dev server
+- TypeScript Compiler - Type checking and compilation
 
 **Backend:**
 - Firebase Realtime Database (NoSQL, real-time sync)
@@ -46,6 +54,8 @@ A modern, full-stack web application for managing job applications and interview
 **Development:**
 - Git & GitHub
 - GitHub Pages (deployment)
+- ESLint & Prettier - Code quality
+- Vitest - Testing framework
 
 **Design System:**
 - CSS Custom Properties
@@ -62,24 +72,51 @@ As a CS student applying to 80+ companies for graduate roles, I needed a central
 
 This project solved my own problem while demonstrating full-stack development skills.
 
+## 🆕 Phase 1 Enhancements (Latest Update)
+
+**Version 2.0.0 - TypeScript Migration & Modern Tooling**
+
+The project has been upgraded with modern development practices while maintaining the original vanilla JavaScript philosophy:
+
+### What's New
+- ✅ **TypeScript Integration** - Full type safety and better developer experience
+- ✅ **Vite Build Tool** - Lightning-fast development and optimized production builds
+- ✅ **State Management** - Nanostores for predictable, reactive state updates
+- ✅ **Modular Architecture** - Clean separation of concerns with organized utilities
+- ✅ **Testing Setup** - Vitest configured with example tests
+- ✅ **Code Quality** - ESLint and Prettier for consistent code style
+- ✅ **Environment Variables** - Secure configuration management
+
+### Migration Notes
+- The original `script.js` remains for reference during migration
+- All new code is in TypeScript (`src/main.ts`)
+- Fully backward compatible - no breaking changes
+- See `AI Markdown Assistance/` folder for detailed migration guides
+
+**Note**: Minor AI assistance was used for initial TypeScript setup and project structure organization. All architectural decisions and implementation were made by the developer.
+
 ## 💡 What I Learned
 
 ### Technical Skills
 - Building responsive UIs without frameworks
 - Working with Firebase Realtime Database
 - Implementing CRUD operations with real-time sync
-- Creating reusable JavaScript functions
-- Managing application state
+- TypeScript for type-safe development
+- Modern build tools (Vite) and state management
+- Creating reusable, modular code architecture
+- Testing with modern frameworks
 
 ### Soft Skills
 - Breaking down complex problems into smaller tasks
 - Designing user-centric interfaces
 - Writing clean, maintainable code
 - Deploying production-ready applications
+- Progressive enhancement and migration strategies
 
 ## 🚦 Getting Started
 
 ### Prerequisites
+- Node.js (v18 or higher) and npm
 - A modern web browser (Chrome, Firefox, Safari, Edge)
 - Firebase account (for your own deployment)
 
@@ -91,32 +128,65 @@ This project solved my own problem while demonstrating full-stack development sk
    cd Job-Tracker-Zawadi
 ```
 
-2. **Set up Firebase**
+2. **Install dependencies**
+```bash
+   npm install
+```
+
+3. **Set up Firebase** (Optional - uses fallback config if not set)
    - Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
    - Enable Realtime Database
-   - Copy your Firebase config
-   - Replace the config in `index.html` (lines 110-118)
+   - Create a `.env` file in the root directory:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   VITE_FIREBASE_DATABASE_URL=your_database_url
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
 
-3. **Open in browser**
-   - Simply open `index.html` in your browser
-   - No build process required (vanilla JavaScript)
+4. **Start development server**
+```bash
+   npm run dev
+```
+   - Server starts at `http://localhost:3000`
+   - Hot reload enabled for instant updates
+   - **Important**: Use the dev server URL, don't open `index.html` directly
 
-4. **Start adding applications**
+5. **Start adding applications**
    - Fill out the form
    - Watch real-time updates
    - Test all CRUD operations
 
+### Building for Production
+
+```bash
+npm run build
+```
+
+This creates an optimized `dist/` folder ready for deployment to GitHub Pages or any static host.
+
 ## 📁 Project Structure
+```
 Job-Tracker-Zawadi/
-├── index.html              # Main HTML structure
-├── style.css               # Complete styling with CSS variables
-├── script.js               # Application logic and Firebase integration
-├── screenshots/            # Application screenshots
-│   ├── dashboard.png
-│   ├── card-detail.png
-│   └── mobile.png
-├── README.md              # This file
-└── .gitignore             # Git ignore rules
+├── src/                    # Source code (TypeScript)
+│   ├── main.ts            # Application entry point
+│   ├── types/             # TypeScript type definitions
+│   ├── stores/            # State management (Nanostores)
+│   ├── utils/             # Utility functions (validators, filters, sorting, cache)
+│   └── config/             # Configuration files
+├── index.html             # Main HTML structure
+├── style.css              # Complete styling with CSS variables
+├── script.js              # Legacy JavaScript (being phased out)
+├── screenshots/           # Application screenshots
+├── AI Markdown Assistance/ # Documentation and guides
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript configuration
+├── vite.config.ts         # Vite build configuration
+└── README.md              # This file
+```
 
 
 ## 🔐 Security Notes
@@ -171,8 +241,10 @@ This project is open source and available under the [MIT License](LICENSE).
 - The tech community for inspiration and resources
 
 ## Project Status
-Current Version: 1.0.0 (Production-Ready MVP)
+Current Version: 2.0.0 (Enhanced with TypeScript & Modern Tooling)
 Active Development: Yes
+Phase: 1 Complete - Foundation Layer ✅
+Next: Phase 2 - Data Visualization & Analytics
 
 
 **Built with ❤️ by Zawadi |Johannesburg, South Africa**
