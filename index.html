@@ -94,6 +94,25 @@
             </form>
         </section>
 
+        <!-- View Toggle - Always Visible -->
+        <section id="view-toggle-section" class="view-toggle-section">
+            <div class="view-toggle">
+                <label>View Mode:</label>
+                <div class="view-toggle-buttons">
+                    <button class="view-toggle-btn active" data-view="cards" id="view-cards-btn">📋 Cards</button>
+                    <button class="view-toggle-btn" data-view="table" id="view-table-btn">📊 Table</button>
+                    <button class="view-toggle-btn" data-view="analytics" id="view-analytics-btn">📈 Analytics</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Dashboard Section -->
+        <section id="analytics-section" class="analytics-dashboard" style="display: none;">
+            <h2>Analytics Dashboard</h2>
+            <div id="stats-grid" class="stats-grid"></div>
+            <div id="charts-container"></div>
+        </section>
+
         <!-- Applications Display Section -->
         <section id="applications-section">
             <div class="section-header">

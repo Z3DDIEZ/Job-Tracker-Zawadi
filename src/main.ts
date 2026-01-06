@@ -20,6 +20,11 @@ import { Validators } from './utils/validators';
 import { FilterManager } from './utils/filters';
 import { SortManager } from './utils/sorting';
 import { CacheManager } from './utils/cache';
+import { analyticsService } from './services/analytics';
+import { createStatCard } from './components/stats/StatCard';
+import { createStatusDistributionChart } from './components/charts/StatusDistributionChart';
+import { PaginationManager } from './utils/pagination';
+import { createTableView, type ViewMode } from './utils/viewModes';
 import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
 // Firebase initialization
@@ -42,6 +47,17 @@ const counterText = document.getElementById('counter-text') as HTMLSpanElement;
 const applicationsContainer = document.getElementById(
   'applications-container'
 ) as HTMLDivElement;
+const analyticsSection = document.getElementById('analytics-section') as HTMLElement;
+const statsGrid = document.getElementById('stats-grid') as HTMLDivElement;
+const chartsContainer = document.getElementById('charts-container') as HTMLDivElement;
+
+// View Mode & Pagination State
+let currentViewMode: ViewMode = 'cards';
+let currentPage = 1;
+const itemsPerPage = 20;
+
+// Edit Mode - Store original data for comparison
+let originalApplicationData: JobApplication | null = null;
 
 // ========================================
 // FORM SUBMISSION WITH VALIDATION
@@ -70,6 +86,20 @@ form?.addEventListener('submit', function (event) {
 
   const editId = currentEditId.get();
   if (editId) {
+    // Validate that something actually changed
+    if (originalApplicationData) {
+      const hasChanges = 
+        originalApplicationData.company !== sanitizedCompany ||
+        originalApplicationData.role !== sanitizedRole ||
+        originalApplicationData.dateApplied !== dateApplied ||
+        originalApplicationData.status !== status ||
+        originalApplicationData.visaSponsorship !== visaSponsorship;
+
+      if (!hasChanges) {
+        showInfoMessage('No changes detected. Nothing to update.');
+        return;
+      }
+    }
     updateApplication(editId, sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship);
   } else {
     addApplication(sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship);
@@ -172,6 +202,7 @@ function updateApplication(
     .then(() => {
       console.log('✅ Application updated successfully');
       showSuccessMessage(`Application for ${company} updated successfully!`);
+      originalApplicationData = null; // Clear stored data after successful update
       cancelEdit();
       submitBtn.disabled = false;
       CacheManager.invalidate();
@@ -243,6 +274,12 @@ export function editApplication(id: string): void {
         return;
       }
 
+      // Store original data for change detection
+      originalApplicationData = {
+        ...app,
+        id: id,
+      };
+
       // Populate form fields
       (document.getElementById('company') as HTMLInputElement).value = app.company || '';
       (document.getElementById('role') as HTMLInputElement).value = app.role || '';
@@ -294,6 +331,7 @@ function showEditModeIndicator(companyName: string): void {
 
 export function cancelEdit(): void {
   setCurrentEditId(null);
+  originalApplicationData = null; // Clear stored original data
   form.reset();
   if (submitBtn) {
     submitBtn.textContent = 'Add Application';
@@ -345,6 +383,22 @@ function showErrorMessage(message: string): void {
   }, 5000);
 }
 
+function showInfoMessage(message: string): void {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'info-message';
+  messageDiv.textContent = message;
+
+  const formSection = document.getElementById('form-section');
+  const form = document.getElementById('application-form');
+  if (formSection && form) {
+    formSection.insertBefore(messageDiv, form);
+  }
+
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 3000);
+}
+
 // ========================================
 // LOAD APPLICATIONS WITH CACHING
 // ========================================
@@ -377,10 +431,20 @@ function loadApplications(): void {
     }
 
     // Convert to array
-    const applicationsArray: JobApplication[] = Object.keys(applicationsData).map((key) => ({
-      id: key,
-      ...applicationsData[key],
-    }));
+    const applicationsArray: JobApplication[] = Object.keys(applicationsData)
+      .map((key) => {
+        const appData = (applicationsData as Record<string, Partial<JobApplication>>)[key];
+        return {
+          id: key,
+          company: appData?.company || '',
+          role: appData?.role || '',
+          dateApplied: appData?.dateApplied || '',
+          status: (appData?.status || 'Applied') as ApplicationStatus,
+          visaSponsorship: appData?.visaSponsorship || false,
+          timestamp: appData?.timestamp || Date.now(),
+          updatedAt: appData?.updatedAt,
+        } as JobApplication;
+      });
 
     setApplications(applicationsArray);
     CacheManager.save(applicationsArray);
@@ -395,18 +459,29 @@ function processAndDisplayApplications(): void {
   const currentFilters = filters.get();
   const currentSort = sortBy.get().value;
 
+  // Convert filter store to ApplicationFilters
+  const appFilters = {
+    search: currentFilters.search || '',
+    status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
+    dateRange: (currentFilters.dateRange || 'all') as 'all' | 'week' | 'month' | 'quarter',
+    visaSponsorship: (currentFilters.visaSponsorship || 'all') as 'all' | 'true' | 'false',
+  };
+
   // Apply filters
-  const filtered = FilterManager.applyFilters(apps, currentFilters);
+  const filtered = FilterManager.applyFilters(apps, appFilters);
   setFilteredApplications(filtered);
 
-  // Apply sorting
-  const sorted = SortManager.sort(filtered, currentSort);
-
-  // Display
-  displayApplications(sorted);
-
-  // Update counter
-  updateCounter(sorted.length, apps.length);
+  // For analytics view, use filtered data (respects filters)
+  // For cards/table view, apply sorting
+  if (currentViewMode === 'analytics') {
+    displayApplications(filtered);
+    updateCounter(filtered.length, apps.length);
+  } else {
+    // Apply sorting for cards/table view
+    const sorted = SortManager.sort(filtered, currentSort);
+    displayApplications(sorted);
+    updateCounter(sorted.length, apps.length);
+  }
 }
 
 // ========================================
@@ -415,6 +490,12 @@ function processAndDisplayApplications(): void {
 
 function displayApplications(apps: JobApplication[]): void {
   if (!applicationsContainer) return;
+
+  // Handle view mode switching
+  if (currentViewMode === 'analytics') {
+    displayAnalyticsDashboard(apps);
+    return;
+  }
 
   applicationsContainer.innerHTML = '';
 
@@ -428,10 +509,207 @@ function displayApplications(apps: JobApplication[]): void {
     return;
   }
 
-  apps.forEach((app) => {
-    const appCard = createApplicationCard(app);
-    applicationsContainer.appendChild(appCard);
+  // Pagination
+  const pagination = PaginationManager.calculatePagination(
+    apps.length,
+    itemsPerPage,
+    currentPage
+  );
+  const paginatedApps = PaginationManager.getPageItems(apps, pagination);
+
+  // Display based on view mode
+  if (currentViewMode === 'table') {
+    const table = createTableView(paginatedApps);
+    applicationsContainer.appendChild(table);
+  } else {
+    // Card view (default)
+    paginatedApps.forEach((app) => {
+      const appCard = createApplicationCard(app);
+      applicationsContainer.appendChild(appCard);
+    });
+  }
+
+  // Add pagination controls if needed
+  if (pagination.totalPages > 1) {
+    const paginationHTML = PaginationManager.createPaginationControls(pagination);
+    const paginationDiv = document.createElement('div');
+    paginationDiv.innerHTML = paginationHTML;
+    applicationsContainer.appendChild(paginationDiv);
+
+    // Attach pagination event listeners
+    attachPaginationListeners(pagination);
+  }
+}
+
+function displayAnalyticsDashboard(apps: JobApplication[]): void {
+  if (!analyticsSection || !statsGrid || !chartsContainer) return;
+
+  // Show analytics section, hide applications section
+  analyticsSection.style.display = 'block';
+  if (applicationsContainer) {
+    applicationsContainer.innerHTML = '';
+  }
+
+  // Calculate metrics from filtered applications
+  // This allows analytics to respect current filters
+  const metrics = analyticsService.calculateMetrics(apps);
+
+  // Display stat cards
+  displayStatCards(metrics);
+
+  // Display charts
+  displayCharts(metrics);
+
+  // Show insights if available
+  const insights = analyticsService.getInsights(metrics);
+  if (insights.length > 0) {
+    displayInsights(insights);
+  }
+}
+
+function displayInsights(insights: string[]): void {
+  if (!chartsContainer) return;
+
+  // Remove existing insights if any
+  const existingInsights = document.getElementById('analytics-insights');
+  if (existingInsights) {
+    existingInsights.remove();
+  }
+
+  const insightsDiv = document.createElement('div');
+  insightsDiv.id = 'analytics-insights';
+  insightsDiv.className = 'analytics-insights';
+  insightsDiv.innerHTML = `
+    <div class="chart-title">💡 Insights</div>
+    <ul class="insights-list">
+      ${insights.map((insight) => `<li>${insight}</li>`).join('')}
+    </ul>
+  `;
+
+  chartsContainer.appendChild(insightsDiv);
+}
+
+function displayStatCards(metrics: ReturnType<typeof analyticsService.calculateMetrics>): void {
+  if (!statsGrid) return;
+
+  statsGrid.innerHTML = '';
+
+  const statCards = [
+    createStatCard({
+      title: 'Total Applications',
+      value: metrics.totalApplications,
+      icon: '📊',
+    }),
+    createStatCard({
+      title: 'Success Rate',
+      value: `${metrics.successRate}%`,
+      subtitle: 'Applications → Offers',
+      trend: metrics.successRate > 15 ? 'up' : metrics.successRate > 5 ? 'neutral' : 'down',
+      icon: '🎯',
+    }),
+    createStatCard({
+      title: 'Response Rate',
+      value: `${metrics.responseRate}%`,
+      subtitle: 'Applications with responses',
+      trend: metrics.responseRate > 50 ? 'up' : 'neutral',
+      icon: '📧',
+    }),
+  ];
+
+  statCards.forEach((card) => statsGrid.appendChild(card));
+}
+
+function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetrics>): void {
+  if (!chartsContainer) return;
+
+  chartsContainer.innerHTML = '';
+
+  // Status Distribution Chart
+  const chartContainer = document.createElement('div');
+  chartContainer.className = 'chart-container';
+  chartContainer.innerHTML = `
+    <div class="chart-title">Status Distribution</div>
+    <div class="chart-wrapper">
+      <canvas id="status-chart"></canvas>
+    </div>
+  `;
+  chartsContainer.appendChild(chartContainer);
+
+  // Render chart after DOM is ready
+  setTimeout(() => {
+    const canvas = document.getElementById('status-chart') as HTMLCanvasElement;
+    if (canvas) {
+      createStatusDistributionChart(canvas, {
+        statusDistribution: metrics.statusDistribution,
+      });
+    }
+  }, 100);
+}
+
+function attachPaginationListeners(pagination: ReturnType<typeof PaginationManager.calculatePagination>): void {
+  const pageButtons = document.querySelectorAll('.page-btn[data-page]');
+  const prevButton = document.querySelector('.page-btn[data-action="prev"]');
+  const nextButton = document.querySelector('.page-btn[data-action="next"]');
+
+  pageButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const page = parseInt((btn as HTMLElement).dataset.page || '1');
+      currentPage = page;
+      processAndDisplayApplications();
+    });
   });
+
+  prevButton?.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      processAndDisplayApplications();
+    }
+  });
+
+  nextButton?.addEventListener('click', () => {
+    if (currentPage < pagination.totalPages) {
+      currentPage++;
+      processAndDisplayApplications();
+    }
+  });
+}
+
+export function switchViewMode(mode: ViewMode): void {
+  currentViewMode = mode;
+  currentPage = 1; // Reset to first page
+
+  // Update button states
+  document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+    btn.classList.remove('active');
+    if ((btn as HTMLElement).dataset.view === mode) {
+      btn.classList.add('active');
+    }
+  });
+
+  // Show/hide sections
+  if (mode === 'analytics') {
+    if (analyticsSection) analyticsSection.style.display = 'block';
+    if (applicationsContainer?.parentElement) {
+      (applicationsContainer.parentElement as HTMLElement).style.display = 'none';
+    }
+    // Hide filters and sort when in analytics (they still apply to analytics data)
+    const filtersSection = document.querySelector('.advanced-filters')?.parentElement;
+    const sortSection = document.querySelector('.sort-controls')?.parentElement;
+    if (filtersSection) (filtersSection as HTMLElement).style.display = 'none';
+    if (sortSection) (sortSection as HTMLElement).style.display = 'none';
+  } else {
+    if (analyticsSection) analyticsSection.style.display = 'none';
+    if (applicationsContainer?.parentElement) {
+      (applicationsContainer.parentElement as HTMLElement).style.display = 'block';
+    }
+    // Show filters and sort when in cards/table view
+    const filtersSection = document.querySelector('.advanced-filters')?.parentElement;
+    const sortSection = document.querySelector('.sort-controls')?.parentElement;
+    if (filtersSection) (filtersSection as HTMLElement).style.display = 'block';
+    if (sortSection) (sortSection as HTMLElement).style.display = 'block';
+  }
+
+  processAndDisplayApplications();
 }
 
 function createApplicationCard(app: JobApplication): HTMLDivElement {
@@ -591,6 +869,16 @@ window.addEventListener('DOMContentLoaded', () => {
     sortSelect.value = sortBy.get().value;
   }
 
+  // Initialize view mode buttons
+  document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = (btn as HTMLElement).dataset.view as ViewMode;
+      if (mode) {
+        switchViewMode(mode);
+      }
+    });
+  });
+
   loadApplications();
 });
 
@@ -610,3 +898,4 @@ window.addEventListener('DOMContentLoaded', () => {
 (window as any).handleDateRangeChange = handleDateRangeChange;
 (window as any).handleVisaFilterChange = handleVisaFilterChange;
 (window as any).handleSortChange = handleSortChange;
+(window as any).switchViewMode = switchViewMode;

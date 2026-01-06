@@ -70,3 +70,13 @@ export interface AnalyticsEvent {
   data?: Record<string, unknown>;
   timestamp: number;
 }
+
+export interface AnalyticsMetrics {
+  totalApplications: number;
+  successRate: number;
+  responseRate: number;
+  averageTimeInStatus: Record<ApplicationStatus, number>;
+  statusDistribution: Record<ApplicationStatus, number>;
+  weeklyVelocity: Array<{ week: string; count: number }>;
+  funnelData: Array<{ stage: string; count: number; conversionRate: number }>;
+}
