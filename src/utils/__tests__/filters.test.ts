@@ -48,7 +48,7 @@ describe('FilterManager', () => {
 
     const result = FilterManager.applyFilters(mockApplications, filters);
     expect(result).toHaveLength(1);
-    expect(result[0].company).toBe('Google');
+    expect(result[0]?.company).toBe('Google');
   });
 
   it('should filter by search term (role)', () => {
@@ -61,7 +61,7 @@ describe('FilterManager', () => {
 
     const result = FilterManager.applyFilters(mockApplications, filters);
     expect(result).toHaveLength(1);
-    expect(result[0].role).toBe('Software Engineer');
+    expect(result[0]?.role).toBe('Software Engineer');
   });
 
   it('should filter by status', () => {
@@ -112,8 +112,8 @@ describe('FilterManager', () => {
 
     const result = FilterManager.applyFilters(mockApplications, filters);
     expect(result).toHaveLength(1);
-    expect(result[0].company).toBe('Google');
-    expect(result[0].status).toBe('Applied');
-    expect(result[0].visaSponsorship).toBe(true);
+    expect(result[0]?.company).toBe('Google');
+    expect(result[0]?.status).toBe('Applied');
+    expect(result[0]?.visaSponsorship).toBe(true);
   });
 });

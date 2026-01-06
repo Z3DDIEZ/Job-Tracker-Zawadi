@@ -17,7 +17,15 @@ export const filteredApplications = atom<JobApplication[]>([]);
 export const currentEditId = atom<string | null>(null);
 
 // Persistent filters and sort preferences
-export const filters = persistentMap<ApplicationFilters>(
+// Using Record<string, string> to satisfy persistentMap requirements
+type FilterStore = Record<string, string> & {
+  search: string;
+  status: string;
+  dateRange: string;
+  visaSponsorship: string;
+};
+
+export const filters = persistentMap<FilterStore>(
   'job-tracker-filters',
   {
     search: '',
@@ -60,7 +68,7 @@ export function updateFilter<K extends keyof ApplicationFilters>(
   key: K,
   value: ApplicationFilters[K]
 ): void {
-  filters.setKey(key, value);
+  filters.setKey(key as string, String(value));
 }
 
 export function resetFilters(): void {

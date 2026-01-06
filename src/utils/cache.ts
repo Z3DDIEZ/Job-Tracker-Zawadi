@@ -70,15 +70,15 @@ export const CacheManager = {
         };
       }
       return {
-        data: null,
-        timestamp: null,
+        data: [] as JobApplication[],
+        timestamp: 0,
         isValid: false,
       };
     } catch (error) {
       console.error('Cache read failed:', error);
       return {
-        data: null,
-        timestamp: null,
+        data: [] as JobApplication[],
+        timestamp: 0,
         isValid: false,
       };
     }

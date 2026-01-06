@@ -60,8 +60,8 @@ export interface FirebaseConfig {
 }
 
 export interface CacheData {
-  data: JobApplication[];
-  timestamp: number;
+  data: JobApplication[] | null;
+  timestamp: number | null;
   isValid: boolean;
 }
 

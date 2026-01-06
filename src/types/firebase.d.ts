@@ -31,6 +31,7 @@ declare namespace firebase {
       remove(): Promise<void>;
       once(event: 'value'): Promise<DataSnapshot>;
       on(event: 'value', callback: (snapshot: DataSnapshot) => void): void;
+      off(event: 'value', callback?: (snapshot: DataSnapshot) => void): void;
     }
 
     interface DataSnapshot {
@@ -39,3 +40,5 @@ declare namespace firebase {
     }
   }
 }
+
+declare const firebase: typeof firebase;

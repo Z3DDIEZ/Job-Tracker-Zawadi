@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { SortManager } from '../sorting';
-import type { JobApplication, SortOption } from '@/types';
+import type { JobApplication } from '@/types';
 
 describe('SortManager', () => {
   const mockApplications: JobApplication[] = [
@@ -39,36 +39,36 @@ describe('SortManager', () => {
 
   it('should sort by date descending (newest first)', () => {
     const result = SortManager.sort(mockApplications, 'date-desc');
-    expect(result[0].timestamp).toBe(2000);
-    expect(result[1].timestamp).toBe(1000);
-    expect(result[2].timestamp).toBe(500);
+    expect(result[0]?.timestamp).toBe(2000);
+    expect(result[1]?.timestamp).toBe(1000);
+    expect(result[2]?.timestamp).toBe(500);
   });
 
   it('should sort by date ascending (oldest first)', () => {
     const result = SortManager.sort(mockApplications, 'date-asc');
-    expect(result[0].timestamp).toBe(500);
-    expect(result[1].timestamp).toBe(1000);
-    expect(result[2].timestamp).toBe(2000);
+    expect(result[0]?.timestamp).toBe(500);
+    expect(result[1]?.timestamp).toBe(1000);
+    expect(result[2]?.timestamp).toBe(2000);
   });
 
   it('should sort by company name A-Z', () => {
     const result = SortManager.sort(mockApplications, 'company-asc');
-    expect(result[0].company).toBe('Amazon');
-    expect(result[1].company).toBe('Google');
-    expect(result[2].company).toBe('Microsoft');
+    expect(result[0]?.company).toBe('Amazon');
+    expect(result[1]?.company).toBe('Google');
+    expect(result[2]?.company).toBe('Microsoft');
   });
 
   it('should sort by company name Z-A', () => {
     const result = SortManager.sort(mockApplications, 'company-desc');
-    expect(result[0].company).toBe('Microsoft');
-    expect(result[1].company).toBe('Google');
-    expect(result[2].company).toBe('Amazon');
+    expect(result[0]?.company).toBe('Microsoft');
+    expect(result[1]?.company).toBe('Google');
+    expect(result[2]?.company).toBe('Amazon');
   });
 
   it('should sort by status order', () => {
     const result = SortManager.sort(mockApplications, 'status');
-    expect(result[0].status).toBe('Applied');
-    expect(result[1].status).toBe('Phone Screen');
-    expect(result[2].status).toBe('Offer');
+    expect(result[0]?.status).toBe('Applied');
+    expect(result[1]?.status).toBe('Phone Screen');
+    expect(result[2]?.status).toBe('Offer');
   });
 });

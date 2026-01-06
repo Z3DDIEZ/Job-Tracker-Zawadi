@@ -6,7 +6,6 @@
 import { getFirebaseConfig } from './config/firebase';
 import {
   applications,
-  filteredApplications,
   currentEditId,
   filters,
   sortBy,
@@ -21,16 +20,16 @@ import { Validators } from './utils/validators';
 import { FilterManager } from './utils/filters';
 import { SortManager } from './utils/sorting';
 import { CacheManager } from './utils/cache';
-import type { JobApplication, ApplicationStatus } from './types';
+import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
 // Firebase initialization
-let database: ReturnType<typeof firebase.database>;
+let database: firebase.database.Database;
 
 // Initialize Firebase
 function initializeFirebase(): void {
   const config = getFirebaseConfig();
-  firebase.initializeApp(config);
-  database = firebase.database();
+  const app = firebase.initializeApp(config);
+  database = app.database();
   console.log('🔥 Firebase initialized');
 }
 
@@ -137,7 +136,7 @@ function addApplication(
       submitBtn.textContent = 'Add Application';
       CacheManager.invalidate();
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('❌ Error saving application:', error);
       showErrorMessage('Failed to save application. Please try again.');
       submitBtn.disabled = false;
@@ -177,7 +176,7 @@ function updateApplication(
       submitBtn.disabled = false;
       CacheManager.invalidate();
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('❌ Error updating application:', error);
       showErrorMessage('Failed to update application. Please try again.');
       submitBtn.disabled = false;
@@ -214,13 +213,13 @@ export function deleteApplication(id: string): void {
             showSuccessMessage(`Application for ${app.company} deleted`);
             CacheManager.invalidate();
           })
-          .catch((error) => {
+          .catch((error: unknown) => {
             console.error('❌ Error deleting application:', error);
             showErrorMessage('Failed to delete application. Please try again.');
           });
       }
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Error loading application:', error);
       showErrorMessage('Error loading application data');
     });
@@ -266,7 +265,7 @@ export function editApplication(id: string): void {
       // Show edit mode indicator
       showEditModeIndicator(app.company);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Error loading application:', error);
       showErrorMessage('Error loading application data');
     });
@@ -363,8 +362,8 @@ function loadApplications(): void {
   showLoadingState();
 
   // Listen for data changes in Firebase
-  database.ref('applications').on('value', (snapshot) => {
-    const applicationsData = snapshot.val();
+  database.ref('applications').on('value', (snapshot: firebase.database.DataSnapshot) => {
+    const applicationsData = snapshot.val() as Record<string, Omit<JobApplication, 'id'>> | null;
 
     if (!applicationsData) {
       if (applicationsContainer) {
@@ -565,7 +564,7 @@ export function handleVisaFilterChange(value: string): void {
 }
 
 export function handleSortChange(value: string): void {
-  setSortPreference(value as typeof sortBy.get().value);
+  setSortPreference(value as SortOption);
   processAndDisplayApplications();
 }
 
