@@ -48,14 +48,7 @@ Once you have your Firebase config:
 
 1. **Create `.env` file** in the project root (same folder as `package.json`)
 
-2. **Copy from `.env.example`**:
-   ```bash
-   # On Windows PowerShell:
-   Copy-Item .env.example .env
-   
-   # On Mac/Linux:
-   cp .env.example .env
-   ```
+2. **Create `.env` file** in the project root directory
 
 3. **Fill in your values**:
    ```env

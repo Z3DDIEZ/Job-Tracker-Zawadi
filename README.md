@@ -88,7 +88,7 @@ The project has been upgraded with modern development practices while maintainin
 - ✅ **Environment Variables** - Secure configuration management
 
 ### Migration Notes
-- The original `script.js` remains for reference during migration
+- Migration from vanilla JS to TypeScript complete
 - All new code is in TypeScript (`src/main.ts`)
 - Fully backward compatible - no breaking changes
 - See `AI Markdown Assistance/` folder for detailed migration guides
@@ -179,7 +179,6 @@ Job-Tracker-Zawadi/
 │   └── config/             # Configuration files
 ├── index.html             # Main HTML structure
 ├── style.css              # Complete styling with CSS variables
-├── script.js              # Legacy JavaScript (being phased out)
 ├── screenshots/           # Application screenshots
 ├── AI Markdown Assistance/ # Documentation and guides
 ├── package.json           # Dependencies and scripts

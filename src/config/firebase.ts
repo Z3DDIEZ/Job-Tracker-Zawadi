@@ -32,7 +32,7 @@ export function getFirebaseConfig(): FirebaseConfig {
     console.error('❌ Firebase configuration incomplete. Missing environment variables:');
     console.error(missingVars.join(', '));
     console.error('\n📝 To fix this:');
-    console.error('1. Copy .env.example to .env');
+    console.error('1. Create a .env file in the project root');
     console.error('2. Fill in your Firebase credentials from https://console.firebase.google.com');
     console.error('3. Restart the dev server (npm run dev)');
     

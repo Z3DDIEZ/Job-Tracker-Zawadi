@@ -22,8 +22,7 @@ This installs:
 Create a `.env` file in the root directory:
 
 ```bash
-# Copy the example file
-cp .env.example .env
+# Create .env file in the project root
 ```
 
 Fill in your Firebase credentials:

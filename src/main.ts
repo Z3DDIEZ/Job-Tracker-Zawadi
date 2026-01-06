@@ -98,7 +98,7 @@ function showFirebaseConfigError(): void {
       To use this application, you need to configure Firebase credentials.
     </p>
     <ol style="margin: 0 0 1rem 0; padding-left: 1.5rem; line-height: 1.8;">
-      <li>Copy <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env.example</code> to <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env</code></li>
+      <li>Create a <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env</code> file in the project root</li>
       <li>Get your Firebase config from <a href="https://console.firebase.google.com" target="_blank" style="color: #fbbf24; text-decoration: underline;">Firebase Console</a></li>
       <li>Fill in the values in <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">.env</code></li>
       <li>Restart the dev server: <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">npm run dev</code></li>
