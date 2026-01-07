@@ -7,7 +7,7 @@ import { animate, set, createTimeline, stagger } from 'animejs';
 
 // Type for animation instances (both animate() and createTimeline() return similar objects)
 type AnimationInstance = ReturnType<typeof animate> | ReturnType<typeof createTimeline>;
-
+/*
 interface AnimationConfig {
   targets: string | HTMLElement | HTMLElement[] | NodeList;
   duration?: number;
@@ -15,7 +15,7 @@ interface AnimationConfig {
   delay?: number;
   complete?: () => void;
 }
-
+*/
 class AnimationService {
   private activeAnimations: Map<string, AnimationInstance> = new Map();
   private prefersReducedMotion: boolean;

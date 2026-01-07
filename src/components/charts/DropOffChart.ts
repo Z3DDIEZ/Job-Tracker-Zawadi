@@ -4,7 +4,7 @@
  * Shows where applications are losing momentum in the pipeline
  */
 
-import { createChart, getStatusColor, defaultChartOptions, chartColors } from '@/utils/chartHelpers';
+import { createChart, defaultChartOptions, chartColors } from '@/utils/chartHelpers';
 import type { Chart, ChartConfiguration } from 'chart.js';
 
 export interface DropOffChartData {
