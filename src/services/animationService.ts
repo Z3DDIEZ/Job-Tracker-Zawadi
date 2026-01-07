@@ -1,321 +1,680 @@
 /**
- * Animation Service
- * Centralized animation service using anime.js
- * Provides accessible, performant animations with reduced motion support
+ * Animation Service v4.0 - Fixed & Optimized
+ * Handles all animations with proper sequencing and cleanup
  */
 
-import { animate, createTimeline } from 'animejs';
-import { stagger } from 'animejs/utils';
+import anime from 'animejs';
 
-/**
- * Check if user prefers reduced motion
- */
-export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+interface AnimationConfig {
+  targets: anime.AnimeParams['targets'];
+  duration?: number;
+  easing?: string;
+  delay?: number;
+  complete?: () => void;
 }
 
-/**
- * Animation Service Class
- * Provides static methods for common animations
- */
-export class AnimationService {
+class AnimationService {
+  private activeAnimations: Map<string, anime.AnimeInstance> = new Map();
+  private prefersReducedMotion: boolean;
+
+  constructor() {
+    // Check for reduced motion preference
+    this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    // Listen for changes
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      this.prefersReducedMotion = e.matches;
+    });
+  }
+
   /**
-   * Animate status change on a badge or element
+   * Check if animations should run
    */
-  static animateStatusChange(
-    element: HTMLElement | null,
-    newColor: string,
-    options?: { duration?: number; scale?: boolean }
-  ): void {
-    if (!element || prefersReducedMotion()) {
-      if (element) {
-        element.style.backgroundColor = newColor;
+  private shouldAnimate(): boolean {
+    return !this.prefersReducedMotion;
+  }
+
+  /**
+   * Store and cleanup animations
+   */
+  private registerAnimation(key: string, animation: anime.AnimeInstance) {
+    // Cancel existing animation with same key
+    if (this.activeAnimations.has(key)) {
+      const existing = this.activeAnimations.get(key);
+      if (existing) {
+        existing.pause();
+        existing.seek(existing.duration);
+      }
+    }
+    this.activeAnimations.set(key, animation);
+  }
+
+  /**
+   * Cancel specific animation
+   */
+  cancelAnimation(key: string) {
+    const animation = this.activeAnimations.get(key);
+    if (animation) {
+      animation.pause();
+      animation.seek(animation.duration);
+      this.activeAnimations.delete(key);
+    }
+  }
+
+  /**
+   * Cancel all active animations
+   */
+  cancelAllAnimations() {
+    this.activeAnimations.forEach((animation) => {
+      animation.pause();
+      animation.seek(animation.duration);
+    });
+    this.activeAnimations.clear();
+  }
+
+  // ========================================
+  // CARD ANIMATIONS
+  // ========================================
+
+  /**
+   * Staggered entrance animation for cards
+   */
+  animateCardsEntrance(cardSelector: string = '.job-card') {
+    if (!this.shouldAnimate()) return;
+
+    const cards = document.querySelectorAll(cardSelector);
+    if (!cards.length) return;
+
+    // Reset initial state
+    anime.set(cards, {
+      opacity: 0,
+      translateY: 50,
+      scale: 0.9
+    });
+
+    const animation = anime({
+      targets: cards,
+      opacity: [0, 1],
+      translateY: [50, 0],
+      scale: [0.9, 1],
+      duration: 600,
+      delay: anime.stagger(100, { start: 0 }), // 100ms between each card
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete('cards-entrance');
+      }
+    });
+
+    this.registerAnimation('cards-entrance', animation);
+  }
+
+  /**
+   * Single card entrance (for newly added cards)
+   */
+  animateCardAdd(cardElement: HTMLElement) {
+    if (!this.shouldAnimate()) {
+      cardElement.style.opacity = '1';
+      return;
+    }
+
+    // Reset initial state
+    anime.set(cardElement, {
+      opacity: 0,
+      translateY: 30,
+      scale: 0.95
+    });
+
+    const animation = anime({
+      targets: cardElement,
+      opacity: [0, 1],
+      translateY: [30, 0],
+      scale: [0.95, 1],
+      duration: 500,
+      easing: 'easeOutBack',
+      complete: () => {
+        this.activeAnimations.delete(`card-add-${cardElement.id}`);
+      }
+    });
+
+    this.registerAnimation(`card-add-${cardElement.id}`, animation);
+  }
+
+  /**
+   * Card deletion animation
+   */
+  animateCardRemove(cardElement: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const animation = anime({
+      targets: cardElement,
+      opacity: [1, 0],
+      translateX: [-100, 0],
+      scale: [1, 0.8],
+      rotateZ: [-5, 0],
+      duration: 400,
+      easing: 'easeInCubic',
+      complete: () => {
+        this.activeAnimations.delete(`card-remove-${cardElement.id}`);
+        if (onComplete) onComplete();
+      }
+    });
+
+    this.registerAnimation(`card-remove-${cardElement.id}`, animation);
+  }
+
+  /**
+   * Card hover animation (call on mouseenter)
+   */
+  animateCardHover(cardElement: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    // Cancel any existing hover animation for this card
+    this.cancelAnimation(`card-hover-${cardElement.id}`);
+
+    const animation = anime({
+      targets: cardElement,
+      translateY: -8,
+      scale: 1.02,
+      duration: 300,
+      easing: 'easeOutCubic'
+    });
+
+    this.registerAnimation(`card-hover-${cardElement.id}`, animation);
+  }
+
+  /**
+   * Card hover reset (call on mouseleave)
+   */
+  animateCardHoverReset(cardElement: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    // Cancel any existing hover animation for this card
+    this.cancelAnimation(`card-hover-${cardElement.id}`);
+
+    const animation = anime({
+      targets: cardElement,
+      translateY: 0,
+      scale: 1,
+      duration: 300,
+      easing: 'easeOutCubic'
+    });
+
+    this.registerAnimation(`card-hover-${cardElement.id}`, animation);
+  }
+
+  // ========================================
+  // STATUS CHANGE ANIMATIONS
+  // ========================================
+
+  /**
+   * Animate status badge change
+   */
+  animateStatusChange(badgeElement: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const timeline = anime.timeline({
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete(`status-${badgeElement.id}`);
+        if (onComplete) onComplete();
+      }
+    });
+
+    timeline
+      .add({
+        targets: badgeElement,
+        scale: [1, 1.2],
+        opacity: [1, 0.7],
+        duration: 200
+      })
+      .add({
+        targets: badgeElement,
+        scale: [1.2, 1],
+        opacity: [0.7, 1],
+        duration: 200
+      });
+
+    this.registerAnimation(`status-${badgeElement.id}`, timeline);
+  }
+
+  /**
+   * Pulse animation for status update notification
+   */
+  pulseElement(element: HTMLElement, count: number = 2) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = anime({
+      targets: element,
+      scale: [1, 1.05, 1],
+      duration: 500,
+      easing: 'easeInOutQuad',
+      loop: count,
+      complete: () => {
+        this.activeAnimations.delete(`pulse-${element.id}`);
+      }
+    });
+
+    this.registerAnimation(`pulse-${element.id}`, animation);
+  }
+
+  // ========================================
+  // VIEW MODE TRANSITIONS
+  // ========================================
+
+  /**
+   * Fade out current view
+   */
+  fadeOutView(containerSelector: string, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const container = document.querySelector(containerSelector);
+    if (!container) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const animation = anime({
+      targets: container,
+      opacity: [1, 0],
+      translateY: [0, -20],
+      duration: 300,
+      easing: 'easeInCubic',
+      complete: () => {
+        this.activeAnimations.delete('view-fade-out');
+        if (onComplete) onComplete();
+      }
+    });
+
+    this.registerAnimation('view-fade-out', animation);
+  }
+
+  /**
+   * Fade in new view
+   */
+  fadeInView(containerSelector: string) {
+    if (!this.shouldAnimate()) {
+      const container = document.querySelector(containerSelector);
+      if (container) {
+        (container as HTMLElement).style.opacity = '1';
       }
       return;
     }
 
-    const duration = options?.duration || 400;
-    const shouldScale = options?.scale !== false;
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
 
-    animate({
-      targets: element,
-      backgroundColor: newColor,
-      scale: shouldScale ? [1, 1.15, 1] : 1,
-      duration,
-      easing: 'easeOutElastic(1, .6)',
-    });
-  }
-
-  /**
-   * Animate card/row highlight pulse
-   */
-  static animateHighlight(element: HTMLElement | null): void {
-    if (!element || prefersReducedMotion()) return;
-
-    animate({
-      targets: element,
-      backgroundColor: ['rgba(217, 119, 6, 0.1)', 'rgba(217, 119, 6, 0.3)', 'rgba(217, 119, 6, 0.1)'],
-      duration: 600,
-      easing: 'easeInOutQuad',
-    });
-  }
-
-  /**
-   * Transition between views
-   */
-  static transitionView(
-    fromElement: HTMLElement | null,
-    toElement: HTMLElement | null,
-    options?: { duration?: number; direction?: 'horizontal' | 'vertical' }
-  ): void {
-    if (prefersReducedMotion()) {
-      if (fromElement) fromElement.style.display = 'none';
-      if (toElement) toElement.style.display = 'block';
-      return;
-    }
-
-    const duration = options?.duration || 300;
-    const direction = options?.direction || 'horizontal';
-    const translateProp = direction === 'horizontal' ? 'translateX' : 'translateY';
-    const translateAmount = direction === 'horizontal' ? 20 : 10;
-
-    const timeline = anime.createTimeline({
-      easing: 'easeInOutQuad',
-      duration,
+    // Reset initial state
+    anime.set(container, {
+      opacity: 0,
+      translateY: 20
     });
 
-    if (fromElement) {
-      timeline.add({
-        targets: fromElement,
-        opacity: [1, 0],
-        [translateProp]: [0, -translateAmount],
-        complete: () => {
-          if (fromElement) fromElement.style.display = 'none';
-        },
-      });
-    }
-
-    if (toElement) {
-      timeline.add(
-        {
-          targets: toElement,
-          opacity: [0, 1],
-          [translateProp]: [translateAmount, 0],
-          begin: () => {
-            if (toElement) toElement.style.display = 'block';
-          },
-        },
-        '-=150' // Start slightly before previous animation ends
-      );
-    }
-  }
-
-  /**
-   * Animate card entrance with stagger
-   */
-  static animateCardEntrance(
-    cards: NodeListOf<HTMLElement> | HTMLElement[],
-    options?: { delay?: number; startDelay?: number }
-  ): void {
-    if (prefersReducedMotion() || cards.length === 0) {
-      // Instant show for reduced motion
-      Array.from(cards).forEach((card) => {
-        card.style.opacity = '1';
-        card.style.transform = 'none';
-      });
-      return;
-    }
-
-    const delay = options?.delay || 50;
-    const startDelay = options?.startDelay || 0;
-
-    animate({
-      targets: Array.from(cards),
+    const animation = anime({
+      targets: container,
       opacity: [0, 1],
-      translateY: [30, 0],
-      scale: [0.95, 1],
-      delay: stagger(delay, { start: startDelay }),
-      duration: 500,
+      translateY: [20, 0],
+      duration: 400,
       easing: 'easeOutCubic',
-    });
-  }
-
-  /**
-   * Animate card deletion
-   */
-  static animateCardDeletion(
-    card: HTMLElement | null,
-    onComplete?: () => void
-  ): void {
-    if (!card) {
-      onComplete?.();
-      return;
-    }
-
-    if (prefersReducedMotion()) {
-      card.remove();
-      onComplete?.();
-      return;
-    }
-
-    animate({
-      targets: card,
-      opacity: [1, 0],
-      scale: [1, 0.8],
-      translateY: [0, -20],
-      duration: 300,
-      easing: 'easeInQuad',
       complete: () => {
-        card.remove();
-        onComplete?.();
-      },
+        this.activeAnimations.delete('view-fade-in');
+      }
+    });
+
+    this.registerAnimation('view-fade-in', animation);
+  }
+
+  /**
+   * Smooth view transition (handles both fade out and fade in)
+   */
+  transitionView(
+    oldViewSelector: string,
+    newViewSelector: string,
+    onMiddle?: () => void
+  ) {
+    this.fadeOutView(oldViewSelector, () => {
+      if (onMiddle) onMiddle();
+      // Small delay before fading in new view
+      setTimeout(() => {
+        this.fadeInView(newViewSelector);
+      }, 100);
     });
   }
 
-  /**
-   * Animate form field focus
-   */
-  static animateFormFieldFocus(field: HTMLElement | null): void {
-    if (!field || prefersReducedMotion()) return;
+  // ========================================
+  // FORM ANIMATIONS
+  // ========================================
 
-    animate({
-      targets: field,
-      scale: [1, 1.02],
-      duration: 200,
-      easing: 'easeOutQuad',
+  /**
+   * Input focus animation
+   */
+  animateInputFocus(inputElement: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = anime({
+      targets: inputElement,
+      scale: [1, 1.02, 1],
+      duration: 300,
+      easing: 'easeOutCubic'
     });
+
+    this.registerAnimation(`input-focus-${inputElement.id}`, animation);
   }
 
   /**
-   * Animate form field blur
+   * Button press animation
    */
-  static animateFormFieldBlur(field: HTMLElement | null): void {
-    if (!field || prefersReducedMotion()) return;
-
-    anime.animate({
-      targets: field,
-      scale: [1.02, 1],
-      duration: 200,
-      easing: 'easeInQuad',
-    });
-  }
-
-  /**
-   * Animate button loading state
-   */
-  static animateButtonLoading(button: HTMLElement | null): void {
-    if (!button || prefersReducedMotion()) return;
-
-    animate({
-      targets: button,
-      opacity: [1, 0.7, 1],
-      duration: 1000,
-      easing: 'easeInOutQuad',
-      loop: true,
-    });
-  }
-
-  /**
-   * Stop button loading animation
-   */
-  static stopButtonLoading(button: HTMLElement | null): void {
-    if (!button) return;
-    // Stop any running animations on the button
-    // In anime.js v4, we reset the opacity directly
-    // The animation will naturally complete or be overridden
-    button.style.opacity = '1';
-    button.style.transition = 'none';
-    // Force a reflow to apply the style immediately
-    void button.offsetHeight;
-    button.style.transition = '';
-  }
-
-  /**
-   * Animate success/error message appearance
-   */
-  static animateMessage(
-    message: HTMLElement | null,
-    type: 'success' | 'error' | 'info' = 'info'
-  ): void {
-    if (!message || prefersReducedMotion()) {
-      if (message) message.style.opacity = '1';
+  animateButtonPress(buttonElement: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      if (onComplete) onComplete();
       return;
     }
 
-    animate({
-      targets: message,
-      opacity: [0, 1],
-      translateY: [-10, 0],
-      scale: [0.95, 1],
-      duration: 300,
-      easing: 'easeOutQuad',
+    const timeline = anime.timeline({
+      complete: () => {
+        this.activeAnimations.delete(`button-${buttonElement.id}`);
+        if (onComplete) onComplete();
+      }
     });
+
+    timeline
+      .add({
+        targets: buttonElement,
+        scale: 0.95,
+        duration: 100,
+        easing: 'easeOutCubic'
+      })
+      .add({
+        targets: buttonElement,
+        scale: 1,
+        duration: 100,
+        easing: 'easeOutCubic'
+      });
+
+    this.registerAnimation(`button-${buttonElement.id}`, timeline);
   }
+
+  /**
+   * Success message animation
+   */
+  animateSuccessMessage(messageElement: HTMLElement, duration: number = 3000) {
+    if (!this.shouldAnimate()) {
+      messageElement.style.opacity = '1';
+      setTimeout(() => {
+        messageElement.style.opacity = '0';
+      }, duration);
+      return;
+    }
+
+    // Reset initial state
+    anime.set(messageElement, {
+      opacity: 0,
+      translateY: -20
+    });
+
+    const timeline = anime.timeline({
+      complete: () => {
+        this.activeAnimations.delete(`message-${messageElement.id}`);
+      }
+    });
+
+    timeline
+      // Fade in
+      .add({
+        targets: messageElement,
+        opacity: [0, 1],
+        translateY: [-20, 0],
+        duration: 400,
+        easing: 'easeOutCubic'
+      })
+      // Hold
+      .add({
+        targets: messageElement,
+        duration: duration
+      })
+      // Fade out
+      .add({
+        targets: messageElement,
+        opacity: [1, 0],
+        translateY: [0, 20],
+        duration: 400,
+        easing: 'easeInCubic'
+      });
+
+    this.registerAnimation(`message-${messageElement.id}`, timeline);
+  }
+
+  // ========================================
+  // CHART ANIMATIONS
+  // ========================================
 
   /**
    * Animate chart container entrance
    */
-  static animateChartEntrance(
-    charts: NodeListOf<HTMLElement> | HTMLElement[],
-    options?: { delay?: number }
-  ): void {
-    if (prefersReducedMotion() || charts.length === 0) {
-      Array.from(charts).forEach((chart) => {
-        chart.style.opacity = '1';
-        chart.style.transform = 'none';
-      });
+  animateChartEntrance(chartContainer: HTMLElement) {
+    if (!this.shouldAnimate()) {
+      chartContainer.style.opacity = '1';
       return;
     }
 
-    const delay = options?.delay || 100;
+    // Reset initial state
+    anime.set(chartContainer, {
+      opacity: 0,
+      translateY: 30,
+      scale: 0.95
+    });
 
-    animate({
-      targets: Array.from(charts),
+    const animation = anime({
+      targets: chartContainer,
       opacity: [0, 1],
+      translateY: [30, 0],
       scale: [0.95, 1],
-      delay: stagger(delay),
-      duration: 500,
-      easing: 'easeOutElastic(1, .6)',
+      duration: 600,
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete(`chart-${chartContainer.id}`);
+      }
     });
+
+    this.registerAnimation(`chart-${chartContainer.id}`, animation);
   }
 
   /**
-   * Animate filter dropdown
+   * Staggered entrance for multiple charts
    */
-  static animateFilterDropdown(dropdown: HTMLElement | null, isOpen: boolean): void {
-    if (!dropdown || prefersReducedMotion()) return;
+  animateChartsEntrance(chartSelector: string = '.chart-container') {
+    if (!this.shouldAnimate()) return;
 
-    if (isOpen) {
-      animate({
-        targets: dropdown,
-        opacity: [0, 1],
-        scaleY: [0, 1],
-        duration: 200,
-        easing: 'easeOutQuad',
-      });
-    } else {
-      animate({
-        targets: dropdown,
-        opacity: [1, 0],
-        scaleY: [1, 0],
-        duration: 150,
-        easing: 'easeInQuad',
-      });
+    const charts = document.querySelectorAll(chartSelector);
+    if (!charts.length) return;
+
+    // Reset initial state
+    anime.set(charts, {
+      opacity: 0,
+      translateY: 50,
+      scale: 0.95
+    });
+
+    const animation = anime({
+      targets: charts,
+      opacity: [0, 1],
+      translateY: [50, 0],
+      scale: [0.95, 1],
+      duration: 700,
+      delay: anime.stagger(150),
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete('charts-entrance');
+      }
+    });
+
+    this.registerAnimation('charts-entrance', animation);
+  }
+
+  // ========================================
+  // LOADING ANIMATIONS
+  // ========================================
+
+  /**
+   * Show loading spinner
+   */
+  showLoading(loadingElement: HTMLElement) {
+    if (!this.shouldAnimate()) {
+      loadingElement.style.display = 'block';
+      loadingElement.style.opacity = '1';
+      return;
     }
+
+    loadingElement.style.display = 'block';
+
+    const animation = anime({
+      targets: loadingElement,
+      opacity: [0, 1],
+      scale: [0.8, 1],
+      duration: 300,
+      easing: 'easeOutCubic'
+    });
+
+    this.registerAnimation('loading-show', animation);
   }
 
   /**
-   * Animate search highlight
+   * Hide loading spinner
    */
-  static animateSearchHighlight(element: HTMLElement | null): void {
-    if (!element || prefersReducedMotion()) return;
+  hideLoading(loadingElement: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      loadingElement.style.display = 'none';
+      if (onComplete) onComplete();
+      return;
+    }
 
-    animate({
-      targets: element,
-      backgroundColor: ['rgba(217, 119, 6, 0.2)', 'rgba(217, 119, 6, 0)', 'rgba(217, 119, 6, 0.2)'],
-      duration: 1000,
-      easing: 'easeInOutQuad',
+    const animation = anime({
+      targets: loadingElement,
+      opacity: [1, 0],
+      scale: [1, 0.8],
+      duration: 300,
+      easing: 'easeInCubic',
+      complete: () => {
+        loadingElement.style.display = 'none';
+        this.activeAnimations.delete('loading-hide');
+        if (onComplete) onComplete();
+      }
     });
+
+    this.registerAnimation('loading-hide', animation);
+  }
+
+  // ========================================
+  // UTILITY ANIMATIONS
+  // ========================================
+
+  /**
+   * Shake animation for errors
+   */
+  shake(element: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = anime({
+      targets: element,
+      translateX: [
+        { value: -10, duration: 100 },
+        { value: 10, duration: 100 },
+        { value: -10, duration: 100 },
+        { value: 10, duration: 100 },
+        { value: 0, duration: 100 }
+      ],
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete(`shake-${element.id}`);
+      }
+    });
+
+    this.registerAnimation(`shake-${element.id}`, animation);
+  }
+
+  /**
+   * Bounce animation
+   */
+  bounce(element: HTMLElement, height: number = 20) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = anime({
+      targets: element,
+      translateY: [
+        { value: -height, duration: 200 },
+        { value: 0, duration: 200 }
+      ],
+      easing: 'easeOutCubic',
+      loop: 2,
+      complete: () => {
+        this.activeAnimations.delete(`bounce-${element.id}`);
+      }
+    });
+
+    this.registerAnimation(`bounce-${element.id}`, animation);
+  }
+
+  /**
+   * Slide in from right
+   */
+  slideInRight(element: HTMLElement) {
+    if (!this.shouldAnimate()) {
+      element.style.opacity = '1';
+      return;
+    }
+
+    anime.set(element, {
+      opacity: 0,
+      translateX: 100
+    });
+
+    const animation = anime({
+      targets: element,
+      opacity: [0, 1],
+      translateX: [100, 0],
+      duration: 400,
+      easing: 'easeOutCubic',
+      complete: () => {
+        this.activeAnimations.delete(`slide-${element.id}`);
+      }
+    });
+
+    this.registerAnimation(`slide-${element.id}`, animation);
+  }
+
+  /**
+   * Slide out to left
+   */
+  slideOutLeft(element: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const animation = anime({
+      targets: element,
+      opacity: [1, 0],
+      translateX: [0, -100],
+      duration: 400,
+      easing: 'easeInCubic',
+      complete: () => {
+        this.activeAnimations.delete(`slide-${element.id}`);
+        if (onComplete) onComplete();
+      }
+    });
+
+    this.registerAnimation(`slide-${element.id}`, animation);
   }
 }
+
+// Export singleton instance
+export const animationService = new AnimationService();
+export default animationService;
