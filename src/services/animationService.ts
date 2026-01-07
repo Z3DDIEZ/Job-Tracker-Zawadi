@@ -3,7 +3,7 @@
  * Handles all animations with proper sequencing and cleanup
  */
 
-import anime from 'animejs';
+import {anime} from 'animejs';
 
 interface AnimationConfig {
   targets: anime.AnimeParams['targets'];
