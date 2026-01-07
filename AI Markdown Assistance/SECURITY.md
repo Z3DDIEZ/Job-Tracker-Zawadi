@@ -37,6 +37,15 @@
 - ✅ Detailed errors logged server-side only
 - ✅ User-friendly error messages
 
+### Firebase API Key Security
+- ✅ API keys stored in environment variables (`.env` file)
+- ✅ `.env` file in `.gitignore` (not committed to repository)
+- ✅ `.env.example` provided for documentation
+- ✅ No hardcoded credentials in source files
+- ⚠️ **Note**: Firebase API keys are public by design for frontend apps
+- ⚠️ **Security**: Comes from Firebase Security Rules, not hiding the key
+- ⚠️ **Best Practice**: Configure API key restrictions in Google Cloud Console
+
 ### Authentication (Future)
 - ⏳ Firebase Authentication ready for implementation
 - ⏳ User-specific data isolation prepared

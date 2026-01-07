@@ -240,11 +240,32 @@ Job-Tracker-Zawadi/
 
 ## 🔐 Security Notes
 
-- Firebase API keys are public by design (frontend apps)
-- Security enforced through Firebase Security Rules
-- Only allows read/write to "applications" path
-- No authentication required for personal use
-- For production with multiple users, add Firebase Authentication
+### Firebase API Keys
+- **Firebase API keys are public by design** - They're meant to be visible in frontend applications
+- **Security comes from Firebase Security Rules**, not from hiding the API key
+- Anyone can view your API key in browser DevTools - this is normal and expected
+- **Best Practice**: Use environment variables (`.env` file) to avoid hardcoding
+- **Additional Security**: Configure API key restrictions in Google Cloud Console
+
+### Security Layers
+- ✅ **Firebase Security Rules** - Primary security layer (enforced server-side)
+- ✅ **Input Validation** - All user inputs validated and sanitized
+- ✅ **XSS Prevention** - All user data escaped before display
+- ✅ **Rate Limiting** - Client-side throttling to prevent abuse
+- ✅ **Path Validation** - Firebase paths whitelisted and validated
+
+### For Production
+- Configure Firebase Security Rules to restrict access appropriately
+- Set up API key restrictions in Google Cloud Console (HTTP referrers, API restrictions)
+- For multi-user support, implement Firebase Authentication
+- Monitor Firebase usage for unusual activity
+
+### GitHub Secret Scanning
+If GitHub flags your Firebase API key:
+- This is a **false positive** for frontend apps (keys are meant to be public)
+- Mark as "False positive" or "Used in tests" in GitHub Security settings
+- Ensure the key is in `.env` (gitignored), not hardcoded in source files
+- Consider rotating the key if it was exposed in git history
 
 ## 🎨 Design Philosophy
 
