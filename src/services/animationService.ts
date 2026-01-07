@@ -653,5 +653,6 @@ class AnimationService {
 }
 
 // Export singleton instance
+export { AnimationService };
 export const animationService = new AnimationService();
 export default animationService;
