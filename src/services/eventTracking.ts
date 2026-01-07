@@ -34,14 +34,30 @@ class EventTrackingService {
   }
 
   /**
+   * Generate a cryptographically secure random string
+   * Uses crypto.getRandomValues() for secure randomness
+   */
+  private generateSecureRandomString(length: number = 7): string {
+    // Use crypto.getRandomValues for cryptographically secure randomness
+    const array = new Uint32Array(Math.ceil(length / 2));
+    crypto.getRandomValues(array);
+    
+    // Convert to base36 string (0-9, a-z)
+    return Array.from(array, (num) => num.toString(36)).join('').substring(0, length);
+  }
+
+  /**
    * Get or create a session ID for this browser session
+   * Uses cryptographically secure random number generation
    */
   private getOrCreateSessionId(): string {
     const stored = sessionStorage.getItem('session_id');
     if (stored) {
       return stored;
     }
-    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // Use secure random generation instead of Math.random()
+    const randomPart = this.generateSecureRandomString(9);
+    const newSessionId = `session_${Date.now()}_${randomPart}`;
     sessionStorage.setItem('session_id', newSessionId);
     return newSessionId;
   }
