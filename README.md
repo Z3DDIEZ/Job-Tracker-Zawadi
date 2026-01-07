@@ -86,7 +86,14 @@ This project solved my own problem while demonstrating full-stack development sk
 
 ## 🆕 Recent Updates
 
-### Version 2.2.0 - Advanced Visualizations (Latest)
+### Version 2.5.0 - Phase 2 Completion & Polish (Latest)
+- ✅ **Drop-off Analysis Chart** - Visualizes drop-off rates between application stages to identify bottlenecks
+- ✅ **Timing Analysis Charts** - Day of week and week of month success rate charts for optimal application timing
+- ✅ **Chart Descriptions** - Added helpful descriptions to all charts for better user understanding
+- ✅ **Complete Behavioral Analytics** - All calculated metrics now visualized with dedicated charts
+- ✅ **Enhanced UX** - Improved chart layout and information architecture
+
+### Version 2.2.0 - Advanced Visualizations
 - ✅ **Application Funnel Chart** - Horizontal bar chart showing conversion rates through pipeline stages
 - ✅ **Weekly Velocity Chart** - Line chart tracking applications submitted per week over time
 - ✅ **Time in Status Chart** - Horizontal bar chart displaying average days spent in each status
@@ -250,24 +257,30 @@ Job-Tracker-Zawadi/
 
 ## 🚀 Roadmap
 
-### Phase 2 - Data Visualization & Analytics (In Progress)
+### Phase 2 - Data Visualization & Analytics ✅ Complete
 
 **v2.2.0 - Advanced Visualizations** ✅ Complete
 - [x] Application funnel chart (Applied → Offer conversion)
 - [x] Weekly application velocity (line chart)
 - [x] Time-in-status metrics (bar chart)
 
-**v2.3.0 - Analytics Dashboard Enhancement**
-- [ ] Interactive chart filtering
-- [ ] CSV export functionality
-- [ ] PNG export for charts
-- [ ] Enhanced insights and recommendations
+**v2.3.0 - Analytics Dashboard Enhancement** ✅ Complete
+- [x] CSV export functionality
+- [x] PNG export for charts
+- [x] Enhanced insights and recommendations
+- [x] Charts respect global filters
 
-**v2.4.0 - Behavioral Analytics**
-- [ ] User behavior event tracking
-- [ ] Drop-off point analysis
-- [ ] Optimal application timing insights
-- [ ] Visa sponsorship impact analysis
+**v2.4.0 - Behavioral Analytics** ✅ Complete
+- [x] User behavior event tracking
+- [x] Drop-off point analysis (calculated)
+- [x] Optimal application timing insights (calculated)
+- [x] Visa sponsorship impact analysis
+
+**v2.5.0 - Phase 2 Completion & Polish** ✅ Complete
+- [x] Drop-off analysis visualization chart
+- [x] Timing analysis charts (day of week, week of month)
+- [x] Chart descriptions and tooltips
+- [x] Complete behavioral analytics visualization
 
 ### Future Phases
 
@@ -308,9 +321,9 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## Project Status
 
-**Current Version**: 2.2.0  
+**Current Version**: 2.5.0  
 **Active Development**: Yes  
-**Current Phase**: Phase 2 - Data Visualization & Analytics (In Progress)
+**Current Phase**: Phase 2 - Data Visualization & Analytics ✅ Complete
 
 ### Completed
 - ✅ **Phase 1** - Foundation Layer (v2.0.0)
@@ -333,16 +346,27 @@ This project is open source and available under the [MIT License](LICENSE).
   - Weekly velocity chart
   - Time in status chart
   - Enhanced analytics dashboard
+- ✅ **v2.3.0** - Analytics Dashboard Enhancement
+  - CSV export functionality
+  - PNG export for charts
+  - Enhanced insights and recommendations
+  - Chart filtering support
+- ✅ **v2.4.0** - Behavioral Analytics
+  - Event tracking system
+  - Drop-off analysis calculations
+  - Timing analysis calculations
+  - Visa sponsorship impact chart
+- ✅ **v2.5.0** - Phase 2 Completion & Polish
+  - Drop-off analysis visualization chart
+  - Timing analysis charts (day of week, week of month)
+  - Chart descriptions and improved UX
+  - Complete behavioral analytics visualization
 
-### In Progress
-- 🚧 **v2.3.0** - Analytics Dashboard Enhancement
-  - Application funnel chart
-  - Weekly velocity chart
-  - Time-in-status chart
-
-### Planned
-- 📋 **v2.3.0** - Analytics Dashboard Enhancement
-- 📋 **v2.4.0** - Behavioral Analytics
+### Next Phase
+- 📋 **Phase 3** - Motion & Animations
+  - Motion One integration
+  - Smooth transitions
+  - Status change animations
 
 
 **Built with ❤️ by Zawadi |Johannesburg, South Africa**

@@ -28,6 +28,8 @@ import { createApplicationFunnelChart } from './components/charts/ApplicationFun
 import { createVelocityChart } from './components/charts/VelocityChart';
 import { createTimeInStatusChart } from './components/charts/TimeInStatusChart';
 import { createVisaImpactChart } from './components/charts/VisaImpactChart';
+import { createDropOffChart } from './components/charts/DropOffChart';
+import { createDayOfWeekChart, createWeekOfMonthChart } from './components/charts/TimingAnalysisChart';
 import { PaginationManager } from './utils/pagination';
 import { createTableView, type ViewMode } from './utils/viewModes';
 import {
@@ -995,7 +997,8 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
   const createChartContainer = (
     id: string,
     title: string,
-    filename: string
+    filename: string,
+    description?: string
   ): { container: HTMLDivElement; wrapper: HTMLDivElement; canvas: HTMLCanvasElement } => {
     const container = document.createElement('div');
     container.className = 'chart-container';
@@ -1003,9 +1006,22 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
     const header = document.createElement('div');
     header.className = 'chart-header';
 
+    const titleWrapper = document.createElement('div');
+    titleWrapper.className = 'chart-title-wrapper';
+
     const chartTitle = document.createElement('div');
     chartTitle.className = 'chart-title';
     chartTitle.textContent = title;
+
+    titleWrapper.appendChild(chartTitle);
+
+    // Add description if provided
+    if (description) {
+      const chartDescription = document.createElement('div');
+      chartDescription.className = 'chart-description';
+      chartDescription.textContent = description;
+      titleWrapper.appendChild(chartDescription);
+    }
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'chart-export-btn';
@@ -1021,7 +1037,7 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
       }
     });
 
-    header.appendChild(chartTitle);
+    header.appendChild(titleWrapper);
     header.appendChild(exportBtn);
 
     const wrapper = document.createElement('div');
@@ -1039,20 +1055,78 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
   };
 
   // Status Distribution Chart
-  createChartContainer('status-chart', 'Status Distribution', 'status-distribution.png');
+  createChartContainer(
+    'status-chart',
+    'Status Distribution',
+    'status-distribution.png',
+    'Breakdown of applications across all status stages'
+  );
 
   // Application Funnel Chart
-  createChartContainer('funnel-chart', 'Application Funnel', 'application-funnel.png');
+  createChartContainer(
+    'funnel-chart',
+    'Application Funnel',
+    'application-funnel.png',
+    'Conversion rates through each stage of the application process'
+  );
 
   // Velocity Chart
-  createChartContainer('velocity-chart', 'Weekly Application Velocity', 'weekly-velocity.png');
+  createChartContainer(
+    'velocity-chart',
+    'Weekly Application Velocity',
+    'weekly-velocity.png',
+    'Number of applications submitted per week over time'
+  );
 
   // Time in Status Chart
-  createChartContainer('time-status-chart', 'Average Time in Status', 'time-in-status.png');
+  createChartContainer(
+    'time-status-chart',
+    'Average Time in Status',
+    'time-in-status.png',
+    'Average days spent in each application status'
+  );
 
   // Visa Impact Chart (only if we have visa data)
   if (metrics.visaImpact && (metrics.visaImpact.withVisa.total > 0 || metrics.visaImpact.withoutVisa.total > 0)) {
-    createChartContainer('visa-impact-chart', 'Visa Sponsorship Impact', 'visa-impact.png');
+    createChartContainer(
+      'visa-impact-chart',
+      'Visa Sponsorship Impact',
+      'visa-impact.png',
+      'Comparison of success and response rates for applications with and without visa sponsorship'
+    );
+  }
+
+  // Drop-off Analysis Chart (only if we have drop-off data)
+  if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
+    createChartContainer(
+      'dropoff-chart',
+      'Drop-off Analysis Between Stages',
+      'dropoff-analysis.png',
+      'Percentage of applications that drop off between each stage transition'
+    );
+  }
+
+  // Timing Analysis Charts (only if we have timing data)
+  if (metrics.timingAnalysis) {
+    const hasDayOfWeekData = Object.keys(metrics.timingAnalysis.byDayOfWeek).length > 0;
+    const hasWeekOfMonthData = Object.keys(metrics.timingAnalysis.byWeekOfMonth).length > 0;
+    
+    if (hasDayOfWeekData) {
+      createChartContainer(
+        'timing-day-chart',
+        'Success Rate by Day of Week',
+        'timing-day-of-week.png',
+        'Optimal days to submit applications based on historical success rates'
+      );
+    }
+    if (hasWeekOfMonthData) {
+      createChartContainer(
+        'timing-week-chart',
+        'Success Rate by Week of Month',
+        'timing-week-of-month.png',
+        'Best weeks of the month to submit applications for better outcomes'
+      );
+    }
   }
 
   // Render all charts after DOM is ready
@@ -1102,6 +1176,40 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
           withoutVisa: metrics.visaImpact.withoutVisa,
         });
         chartInstances.set('visa-impact-chart', chart);
+      }
+    }
+
+    // Drop-off Analysis Chart
+    if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
+      const dropOffCanvas = document.getElementById('dropoff-chart') as HTMLCanvasElement;
+      if (dropOffCanvas) {
+        const chart = createDropOffChart(dropOffCanvas, {
+          dropOffAnalysis: metrics.dropOffAnalysis,
+        });
+        chartInstances.set('dropoff-chart', chart);
+      }
+    }
+
+    // Timing Analysis Charts
+    if (metrics.timingAnalysis) {
+      // Day of Week Chart
+      const dayCanvas = document.getElementById('timing-day-chart') as HTMLCanvasElement;
+      if (dayCanvas && Object.keys(metrics.timingAnalysis.byDayOfWeek).length > 0) {
+        const chart = createDayOfWeekChart(dayCanvas, {
+          byDayOfWeek: metrics.timingAnalysis.byDayOfWeek,
+          byWeekOfMonth: metrics.timingAnalysis.byWeekOfMonth,
+        });
+        chartInstances.set('timing-day-chart', chart);
+      }
+
+      // Week of Month Chart
+      const weekCanvas = document.getElementById('timing-week-chart') as HTMLCanvasElement;
+      if (weekCanvas && Object.keys(metrics.timingAnalysis.byWeekOfMonth).length > 0) {
+        const chart = createWeekOfMonthChart(weekCanvas, {
+          byDayOfWeek: metrics.timingAnalysis.byDayOfWeek,
+          byWeekOfMonth: metrics.timingAnalysis.byWeekOfMonth,
+        });
+        chartInstances.set('timing-week-chart', chart);
       }
     }
   }, 100);

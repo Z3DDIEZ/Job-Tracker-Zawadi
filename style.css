@@ -1602,11 +1602,25 @@ footer a:hover {
     margin-bottom: var(--space-4);
 }
 
+.chart-title-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
 .chart-title {
     font-size: var(--text-lg);
     font-weight: 600;
     color: var(--slate-900);
     margin: 0;
+}
+
+.chart-description {
+    font-size: var(--text-sm);
+    color: var(--slate-600);
+    margin: 0;
+    font-weight: 400;
+    line-height: 1.4;
 }
 
 .chart-export-btn {
