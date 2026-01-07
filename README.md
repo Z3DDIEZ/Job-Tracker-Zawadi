@@ -28,7 +28,10 @@ A modern, full-stack web application for managing job applications and interview
 
 ### Analytics & Insights (v2.1.0+)
 - **Analytics Dashboard** - Comprehensive data visualization and insights
-- **Status Distribution** - Visual breakdown of applications by status
+- **Status Distribution Chart** - Visual breakdown of applications by status (doughnut chart)
+- **Application Funnel Chart** - Conversion rates through pipeline stages (Applied → Offer)
+- **Weekly Velocity Chart** - Track application momentum over time (line chart)
+- **Time in Status Chart** - Average days spent in each status (horizontal bar chart)
 - **Key Metrics** - Success rate, response rate, and application velocity
 - **Multiple View Modes** - Cards, Table, and Analytics views
 - **Pagination** - Efficiently handle large datasets (100+ applications)
@@ -83,7 +86,14 @@ This project solved my own problem while demonstrating full-stack development sk
 
 ## 🆕 Recent Updates
 
-### Version 2.1.1 - Security Enhancements (Latest)
+### Version 2.2.0 - Advanced Visualizations (Latest)
+- ✅ **Application Funnel Chart** - Horizontal bar chart showing conversion rates through pipeline stages
+- ✅ **Weekly Velocity Chart** - Line chart tracking applications submitted per week over time
+- ✅ **Time in Status Chart** - Horizontal bar chart displaying average days spent in each status
+- ✅ **Enhanced Analytics Dashboard** - All four charts integrated with responsive design
+- ✅ **Improved Insights** - Better data visualization for strategic decision-making
+
+### Version 2.1.1 - Security Enhancements
 - ✅ **Security Audit** - Comprehensive OWASP Top 10 review
 - ✅ **XSS Prevention** - All user input properly sanitized and escaped
 - ✅ **Input Validation** - Enhanced validation with length limits and pattern detection
@@ -242,10 +252,10 @@ Job-Tracker-Zawadi/
 
 ### Phase 2 - Data Visualization & Analytics (In Progress)
 
-**v2.2.0 - Advanced Visualizations** (Next)
-- [ ] Application funnel chart (Applied → Offer conversion)
-- [ ] Weekly application velocity (line chart)
-- [ ] Time-in-status metrics (bar chart)
+**v2.2.0 - Advanced Visualizations** ✅ Complete
+- [x] Application funnel chart (Applied → Offer conversion)
+- [x] Weekly application velocity (line chart)
+- [x] Time-in-status metrics (bar chart)
 
 **v2.3.0 - Analytics Dashboard Enhancement**
 - [ ] Interactive chart filtering
@@ -298,7 +308,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## Project Status
 
-**Current Version**: 2.1.1  
+**Current Version**: 2.2.0  
 **Active Development**: Yes  
 **Current Phase**: Phase 2 - Data Visualization & Analytics (In Progress)
 
@@ -318,9 +328,14 @@ This project is open source and available under the [MIT License](LICENSE).
   - XSS prevention
   - Input validation
   - Rate limiting
+- ✅ **v2.2.0** - Advanced Visualizations
+  - Application funnel chart
+  - Weekly velocity chart
+  - Time in status chart
+  - Enhanced analytics dashboard
 
 ### In Progress
-- 🚧 **v2.2.0** - Advanced Visualizations
+- 🚧 **v2.3.0** - Analytics Dashboard Enhancement
   - Application funnel chart
   - Weekly velocity chart
   - Time-in-status chart

@@ -23,6 +23,9 @@ import { CacheManager } from './utils/cache';
 import { analyticsService } from './services/analytics';
 import { createStatCard } from './components/stats/StatCard';
 import { createStatusDistributionChart } from './components/charts/StatusDistributionChart';
+import { createApplicationFunnelChart } from './components/charts/ApplicationFunnelChart';
+import { createVelocityChart } from './components/charts/VelocityChart';
+import { createTimeInStatusChart } from './components/charts/TimeInStatusChart';
 import { PaginationManager } from './utils/pagination';
 import { createTableView, type ViewMode } from './utils/viewModes';
 import {
@@ -915,31 +918,75 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
 
   chartsContainer.innerHTML = '';
 
-  // Status Distribution Chart (safe DOM creation)
-  const chartContainer = document.createElement('div');
-  chartContainer.className = 'chart-container';
+  // Helper function to create a chart container
+  const createChartContainer = (
+    id: string,
+    title: string
+  ): { container: HTMLDivElement; wrapper: HTMLDivElement; canvas: HTMLCanvasElement } => {
+    const container = document.createElement('div');
+    container.className = 'chart-container';
 
-  const chartTitle = document.createElement('div');
-  chartTitle.className = 'chart-title';
-  chartTitle.textContent = 'Status Distribution';
+    const chartTitle = document.createElement('div');
+    chartTitle.className = 'chart-title';
+    chartTitle.textContent = title;
 
-  const chartWrapper = document.createElement('div');
-  chartWrapper.className = 'chart-wrapper';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chart-wrapper';
 
-  const canvas = document.createElement('canvas');
-  canvas.id = 'status-chart';
+    const canvas = document.createElement('canvas');
+    canvas.id = id;
 
-  chartWrapper.appendChild(canvas);
-  chartContainer.appendChild(chartTitle);
-  chartContainer.appendChild(chartWrapper);
-  chartsContainer.appendChild(chartContainer);
+    wrapper.appendChild(canvas);
+    container.appendChild(chartTitle);
+    container.appendChild(wrapper);
+    chartsContainer.appendChild(container);
 
-  // Render chart after DOM is ready
+    return { container, wrapper, canvas };
+  };
+
+  // Status Distribution Chart
+  createChartContainer('status-chart', 'Status Distribution');
+
+  // Application Funnel Chart
+  createChartContainer('funnel-chart', 'Application Funnel');
+
+  // Velocity Chart
+  createChartContainer('velocity-chart', 'Weekly Application Velocity');
+
+  // Time in Status Chart
+  createChartContainer('time-status-chart', 'Average Time in Status');
+
+  // Render all charts after DOM is ready
   setTimeout(() => {
-    const canvas = document.getElementById('status-chart') as HTMLCanvasElement;
-    if (canvas) {
-      createStatusDistributionChart(canvas, {
+    // Status Distribution
+    const statusCanvas = document.getElementById('status-chart') as HTMLCanvasElement;
+    if (statusCanvas) {
+      createStatusDistributionChart(statusCanvas, {
         statusDistribution: metrics.statusDistribution,
+      });
+    }
+
+    // Funnel Chart
+    const funnelCanvas = document.getElementById('funnel-chart') as HTMLCanvasElement;
+    if (funnelCanvas) {
+      createApplicationFunnelChart(funnelCanvas, {
+        funnelData: metrics.funnelData,
+      });
+    }
+
+    // Velocity Chart
+    const velocityCanvas = document.getElementById('velocity-chart') as HTMLCanvasElement;
+    if (velocityCanvas) {
+      createVelocityChart(velocityCanvas, {
+        weeklyVelocity: metrics.weeklyVelocity,
+      });
+    }
+
+    // Time in Status Chart
+    const timeStatusCanvas = document.getElementById('time-status-chart') as HTMLCanvasElement;
+    if (timeStatusCanvas) {
+      createTimeInStatusChart(timeStatusCanvas, {
+        averageTimeInStatus: metrics.averageTimeInStatus,
       });
     }
   }, 100);
