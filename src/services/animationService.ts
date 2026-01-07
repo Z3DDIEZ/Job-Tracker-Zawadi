@@ -210,8 +210,11 @@ class AnimationService {
   /**
    * Animate status badge change
    */
-  animateStatusChange(badgeElement: HTMLElement, onComplete?: () => void) {
+  animateStatusChange(badgeElement: HTMLElement, newColor?: string, onComplete?: () => void) {
     if (!this.shouldAnimate()) {
+      if (newColor) {
+        badgeElement.style.backgroundColor = newColor;
+      }
       if (onComplete) onComplete();
       return;
     }
@@ -233,7 +236,13 @@ class AnimationService {
       scale: [1.2, 1],
       opacity: [0.7, 1],
       duration: 200,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
+      onBegin: () => {
+        // Apply color change during animation
+        if (newColor) {
+          badgeElement.style.backgroundColor = newColor;
+        }
+      }
     });
 
     this.registerAnimation(`status-${badgeElement.id}`, tl);
@@ -325,22 +334,7 @@ class AnimationService {
     this.registerAnimation('view-fade-in', animation);
   }
 
-  /**
-   * Smooth view transition (handles both fade out and fade in)
-   */
-  transitionView(
-    oldViewSelector: string,
-    newViewSelector: string,
-    onMiddle?: () => void
-  ) {
-    this.fadeOutView(oldViewSelector, () => {
-      if (onMiddle) onMiddle();
-      // Small delay before fading in new view
-      setTimeout(() => {
-        this.fadeInView(newViewSelector);
-      }, 100);
-    });
-  }
+  
 
   // ========================================
   // FORM ANIMATIONS
@@ -441,35 +435,6 @@ class AnimationService {
   // CHART ANIMATIONS
   // ========================================
 
-  /**
-   * Animate chart container entrance
-   */
-  animateChartEntrance(chartContainer: HTMLElement) {
-    if (!this.shouldAnimate()) {
-      chartContainer.style.opacity = '1';
-      return;
-    }
-
-    // Reset initial state
-    set(chartContainer, {
-      opacity: 0,
-      translateY: 30,
-      scale: 0.95
-    });
-
-    const animation = animate(chartContainer, {
-      opacity: [0, 1],
-      translateY: [30, 0],
-      scale: [0.95, 1],
-      duration: 600,
-      ease: 'out-cubic',
-      onComplete: () => {
-        this.activeAnimations.delete(`chart-${chartContainer.id}`);
-      }
-    });
-
-    this.registerAnimation(`chart-${chartContainer.id}`, animation);
-  }
 
   /**
    * Staggered entrance for multiple charts
@@ -650,9 +615,278 @@ class AnimationService {
 
     this.registerAnimation(`slide-${element.id}`, animation);
   }
+
+  // ========================================
+  // ADDITIONAL ANIMATIONS (for main.ts)
+  // ========================================
+
+  /**
+   * Animate button loading state
+   */
+  animateButtonLoading(button: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = animate(button, {
+      opacity: [1, 0.7, 1],
+      duration: 1000,
+      ease: 'inout-quad',
+      loop: true
+    });
+
+    this.registerAnimation(`button-loading-${button.id}`, animation);
+  }
+
+  /**
+   * Stop button loading animation
+   */
+  stopButtonLoading(button: HTMLElement) {
+    this.cancelAnimation(`button-loading-${button.id}`);
+    button.style.opacity = '1';
+  }
+
+  /**
+   * Highlight animation (pulse with color)
+   */
+  animateHighlight(element: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = animate(element, {
+      scale: [1, 1.03, 1],
+      duration: 600,
+      ease: 'out-cubic',
+      onComplete: () => {
+        this.activeAnimations.delete(`highlight-${element.id}`);
+      }
+    });
+
+    this.registerAnimation(`highlight-${element.id}`, animation);
+  }
+
+  /**
+   * Card deletion animation (with callback)
+   */
+  animateCardDeletion(card: HTMLElement, onComplete?: () => void) {
+    if (!this.shouldAnimate()) {
+      card.remove();
+      if (onComplete) onComplete();
+      return;
+    }
+
+    const animation = animate(card, {
+      opacity: [1, 0],
+      translateX: [0, -100],
+      scale: [1, 0.8],
+      rotate: [0, -5],
+      duration: 400,
+      ease: 'in-cubic',
+      onComplete: () => {
+        card.remove();
+        this.activeAnimations.delete(`card-deletion-${card.id}`);
+        if (onComplete) onComplete();
+      }
+    });
+
+    this.registerAnimation(`card-deletion-${card.id}`, animation);
+  }
+
+  /**
+   * Animate message (error, success, info)
+   */
+  animateMessage(messageElement: HTMLElement, type: 'error' | 'success' | 'info') {
+    if (!this.shouldAnimate()) {
+      messageElement.style.opacity = '1';
+      return;
+    }
+
+    set(messageElement, {
+      opacity: 0,
+      translateY: -20
+    });
+
+    const animation = animate(messageElement, {
+      opacity: [0, 1],
+      translateY: [-20, 0],
+      duration: 400,
+      ease: 'out-cubic',
+      onComplete: () => {
+        this.activeAnimations.delete(`message-${type}`);
+      }
+    });
+
+    this.registerAnimation(`message-${type}`, animation);
+  }
+
+  /**
+   * Animate card entrance with options (supports arrays and NodeLists)
+   */
+  animateCardEntrance(
+    cards: HTMLElement[] | NodeListOf<HTMLElement>,
+    options?: { delay?: number; startDelay?: number }
+  ) {
+    if (!this.shouldAnimate()) return;
+
+    const cardsArray = Array.from(cards);
+    if (cardsArray.length === 0) return;
+
+    // Reset initial state
+    set(cardsArray, {
+      opacity: 0,
+      translateY: 50,
+      scale: 0.9
+    });
+
+    const animation = animate(cardsArray, {
+      opacity: [0, 1],
+      translateY: [50, 0],
+      scale: [0.9, 1],
+      duration: 600,
+      delay: stagger(options?.delay || 100, { start: options?.startDelay || 0 }),
+      ease: 'out-cubic',
+      onComplete: () => {
+        this.activeAnimations.delete('card-entrance-multi');
+      }
+    });
+
+    this.registerAnimation('card-entrance-multi', animation);
+  }
+
+  /**
+   * Animate chart entrance with options (supports arrays and NodeLists)
+   */
+  animateChartEntrance(
+    charts: HTMLElement | HTMLElement[] | NodeListOf<HTMLElement>,
+    options?: { delay?: number }
+  ) {
+    if (!this.shouldAnimate()) return;
+
+    // Handle single element or array/NodeList
+    const chartsArray = charts instanceof HTMLElement ? [charts] : Array.from(charts);
+    if (chartsArray.length === 0) return;
+
+    // Reset initial state
+    set(chartsArray, {
+      opacity: 0,
+      translateY: 30,
+      scale: 0.95
+    });
+
+    const animation = animate(chartsArray, {
+      opacity: [0, 1],
+      translateY: [30, 0],
+      scale: [0.95, 1],
+      duration: 700,
+      delay: chartsArray.length > 1 ? stagger(options?.delay || 150) : 0,
+      ease: 'out-cubic',
+      onComplete: () => {
+        this.activeAnimations.delete('charts-entrance-multi');
+      }
+    });
+
+    this.registerAnimation('charts-entrance-multi', animation);
+  }
+
+  /**
+   * Form field focus animation
+   */
+  animateFormFieldFocus(field: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = animate(field, {
+      scale: [1, 1.01],
+      duration: 200,
+      ease: 'out-cubic'
+    });
+
+    this.registerAnimation(`field-focus-${field.id}`, animation);
+  }
+
+  /**
+   * Form field blur animation
+   */
+  animateFormFieldBlur(field: HTMLElement) {
+    if (!this.shouldAnimate()) return;
+
+    const animation = animate(field, {
+      scale: [1.01, 1],
+      duration: 200,
+      ease: 'out-cubic'
+    });
+
+    this.registerAnimation(`field-blur-${field.id}`, animation);
+  }
+
+  /**
+   * Transition view with options (handles elements or selectors)
+   */
+  transitionView(
+    oldView: HTMLElement | string | null,
+    newView: HTMLElement | string | null,
+    options?: { duration?: number; direction?: 'horizontal' | 'vertical' }
+  ) {
+    const duration = options?.duration || 300;
+    const direction = options?.direction || 'vertical';
+
+    // Get elements from selectors if needed
+    const oldElement = typeof oldView === 'string' ? document.querySelector(oldView) as HTMLElement : oldView;
+    const newElement = typeof newView === 'string' ? document.querySelector(newView) as HTMLElement : newView;
+
+    // Fade out old view
+    if (oldElement) {
+      if (!this.shouldAnimate()) {
+        oldElement.style.display = 'none';
+      } else {
+        const translateProp = direction === 'horizontal' ? 'translateX' : 'translateY';
+        const translateValue = direction === 'horizontal' ? -50 : -20;
+
+        const animation = animate(oldElement, {
+          opacity: [1, 0],
+          [translateProp]: [0, translateValue],
+          duration: duration,
+          ease: 'in-cubic',
+          onComplete: () => {
+            oldElement.style.display = 'none';
+            this.activeAnimations.delete('transition-out');
+          }
+        });
+
+        this.registerAnimation('transition-out', animation);
+      }
+    }
+
+    // Fade in new view after a short delay
+    setTimeout(() => {
+      if (newElement) {
+        newElement.style.display = 'block';
+
+        if (!this.shouldAnimate()) {
+          newElement.style.opacity = '1';
+        } else {
+          const translateProp = direction === 'horizontal' ? 'translateX' : 'translateY';
+          const translateValue = direction === 'horizontal' ? 50 : 20;
+
+          set(newElement, {
+            opacity: 0,
+            [translateProp]: translateValue
+          });
+
+          const animation = animate(newElement, {
+            opacity: [0, 1],
+            [translateProp]: [translateValue, 0],
+            duration: duration,
+            ease: 'out-cubic',
+            onComplete: () => {
+              this.activeAnimations.delete('transition-in');
+            }
+          });
+
+          this.registerAnimation('transition-in', animation);
+        }
+      }
+    }, duration / 2);
+  }
 }
 
-// Export singleton instance
+// Export both the class and singleton instance
 export { AnimationService };
 export const animationService = new AnimationService();
 export default animationService;

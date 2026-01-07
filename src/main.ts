@@ -47,7 +47,7 @@ import {
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
 import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
-import { AnimationService } from './services/animationService';
+import { animationService } from './services/animationService';
 import type { Chart } from 'chart.js';
 import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
@@ -253,7 +253,7 @@ function addApplication(
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Saving...';
-  AnimationService.animateButtonLoading(submitBtn);
+  animationService.animateButtonLoading(submitBtn);
 
   // Use secure Firebase reference (no ID needed for push)
   const newApplicationRef = secureFirebaseRef(database!, 'applications').push();
@@ -286,7 +286,7 @@ function addApplication(
     .catch((error: unknown) => {
       console.error('❌ Error saving application:', error);
       showErrorMessage('Failed to save application. Please try again.');
-      AnimationService.stopButtonLoading(submitBtn);
+      animationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add Application';
     });
@@ -347,10 +347,10 @@ function updateApplication(
             'Rejected': '#fee2e2',
           };
           const newColor = statusColors[status] || '#dbeafe';
-          AnimationService.animateStatusChange(statusBadge, newColor);
+          animationService.animateStatusChange(statusBadge, newColor);
         }
         if (card) {
-          AnimationService.animateHighlight(card);
+          animationService.animateHighlight(card);
         }
       }
       eventTrackingService.track('application_updated', {
@@ -360,7 +360,7 @@ function updateApplication(
       showSuccessMessage(`Application for ${company} updated successfully!`);
       originalApplicationData = null; // Clear stored data after successful update
       cancelEdit();
-      AnimationService.stopButtonLoading(submitBtn);
+      animationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       CacheManager.invalidate();
     })
@@ -374,7 +374,7 @@ function updateApplication(
       });
       
       showErrorMessage('Failed to update application. Please try again.');
-      AnimationService.stopButtonLoading(submitBtn);
+      animationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Update Application';
     });
@@ -434,7 +434,7 @@ export function deleteApplication(id: string): void {
             
             // Animate deletion
             if (card) {
-              AnimationService.animateCardDeletion(card, () => {
+              animationService.animateCardDeletion(card, () => {
                 showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
                 CacheManager.invalidate();
               });
@@ -612,7 +612,7 @@ function showErrorMessage(message: string): void {
   const form = document.getElementById('application-form');
   if (formSection && form) {
     formSection.insertBefore(messageDiv, form);
-    AnimationService.animateMessage(messageDiv, 'error');
+    animationService.animateMessage(messageDiv, 'error');
   }
 
   setTimeout(() => {
@@ -629,7 +629,7 @@ function showInfoMessage(message: string): void {
   const form = document.getElementById('application-form');
   if (formSection && form) {
     formSection.insertBefore(messageDiv, form);
-    AnimationService.animateMessage(messageDiv, 'info');
+    animationService.animateMessage(messageDiv, 'info');
   }
 
   setTimeout(() => {
@@ -789,7 +789,7 @@ function displayApplications(apps: JobApplication[]): void {
     // Animate table rows entrance
     setTimeout(() => {
       const rows = table.querySelectorAll('tbody tr');
-      AnimationService.animateCardEntrance(rows as NodeListOf<HTMLElement>, { delay: 30 });
+      animationService.animateCardEntrance(rows as NodeListOf<HTMLElement>, { delay: 30 });
     }, 50);
   } else {
     // Card view (default)
@@ -801,7 +801,7 @@ function displayApplications(apps: JobApplication[]): void {
     });
     // Animate card entrance with stagger
     setTimeout(() => {
-      AnimationService.animateCardEntrance(cards, { delay: 50, startDelay: 100 });
+      animationService.animateCardEntrance(cards, { delay: 50, startDelay: 100 });
     }, 50);
   }
 
@@ -1184,7 +1184,7 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
     // Animate chart containers entrance
     const chartContainers = chartsContainer.querySelectorAll('.chart-container');
     if (chartContainers.length > 0) {
-      AnimationService.animateChartEntrance(chartContainers as NodeListOf<HTMLElement>, { delay: 100 });
+      animationService.animateChartEntrance(chartContainers as NodeListOf<HTMLElement>, { delay: 100 });
     }
     
     // Render charts
@@ -1322,7 +1322,7 @@ export function switchViewMode(mode: ViewMode): void {
     
     // Animate transition to analytics view
     if (previousMode !== 'analytics') {
-      AnimationService.transitionView(
+      animationService.transitionView(
         applicationsSectionElement || null,
         analyticsSection,
         { duration: 300, direction: 'horizontal' }
@@ -1340,7 +1340,7 @@ export function switchViewMode(mode: ViewMode): void {
   } else {
     // Animate transition to cards/table view
     if (previousMode === 'analytics') {
-      AnimationService.transitionView(
+      animationService.transitionView(
         analyticsSection,
         applicationsSectionElement || null,
         { duration: 300, direction: 'horizontal' }
@@ -1549,10 +1549,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const formFields = form?.querySelectorAll('input, select, textarea');
   formFields?.forEach((field) => {
     field.addEventListener('focus', () => {
-      AnimationService.animateFormFieldFocus(field as HTMLElement);
+      animationService.animateFormFieldFocus(field as HTMLElement);
     });
     field.addEventListener('blur', () => {
-      AnimationService.animateFormFieldBlur(field as HTMLElement);
+      animationService.animateFormFieldBlur(field as HTMLElement);
     });
   });
 
