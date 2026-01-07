@@ -183,7 +183,7 @@ section {
 }
 
 section:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), 0 0 20px rgba(217, 119, 6, 0.08);
     border-color: var(--slate-300);
 }
 
@@ -246,7 +246,7 @@ section h2::after {
 .form-group select:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-subtle);
+    box-shadow: 0 0 0 3px var(--accent-subtle), 0 0 12px rgba(217, 119, 6, 0.1);
     background: var(--white);
 }
 
@@ -312,7 +312,8 @@ button[type="submit"]:hover::before {
 
 button[type="submit"]:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), 0 4px 12px rgba(217, 119, 6, 0.15);
+    /* Tiny warm shadow */
 }
 
 button[type="submit"]:active {
@@ -404,7 +405,7 @@ button[type="submit"] span {
 
 .application-card:hover {
     border-color: var(--slate-300);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), 0 0 15px rgba(217, 119, 6, 0.06);
     transform: translateY(-2px);
 }
 
@@ -915,6 +916,13 @@ footer a:hover {
     
     body {
         background: white;
+    }
+
+    body {
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(217, 119, 6, 0.02) 0%, transparent 50%),
+            radial-gradient(circle at 90% 80%, rgba(217, 119, 6, 0.01) 0%, transparent 50%);
+        /* Barely visible warm spots in the background */
     }
     
     .application-card {
