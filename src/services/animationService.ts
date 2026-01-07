@@ -1,12 +1,15 @@
 /**
- * Animation Service v4.0 - Fixed & Optimized
+ * Animation Service v4.0 - anime.js v4 Compatible
  * Handles all animations with proper sequencing and cleanup
  */
 
-import {anime} from 'animejs';
+import { animate, set, createTimeline, stagger } from 'animejs';
+
+// Type for animation instances (both animate() and createTimeline() return similar objects)
+type AnimationInstance = ReturnType<typeof animate> | ReturnType<typeof createTimeline>;
 
 interface AnimationConfig {
-  targets: anime.AnimeParams['targets'];
+  targets: string | HTMLElement | HTMLElement[] | NodeList;
   duration?: number;
   easing?: string;
   delay?: number;
@@ -14,7 +17,7 @@ interface AnimationConfig {
 }
 
 class AnimationService {
-  private activeAnimations: Map<string, anime.AnimeInstance> = new Map();
+  private activeAnimations: Map<string, AnimationInstance> = new Map();
   private prefersReducedMotion: boolean;
 
   constructor() {
@@ -37,7 +40,7 @@ class AnimationService {
   /**
    * Store and cleanup animations
    */
-  private registerAnimation(key: string, animation: anime.AnimeInstance) {
+  private registerAnimation(key: string, animation: AnimationInstance) {
     // Cancel existing animation with same key
     if (this.activeAnimations.has(key)) {
       const existing = this.activeAnimations.get(key);
@@ -86,21 +89,20 @@ class AnimationService {
     if (!cards.length) return;
 
     // Reset initial state
-    anime.set(cards, {
+    set(cards, {
       opacity: 0,
       translateY: 50,
       scale: 0.9
     });
 
-    const animation = anime({
-      targets: cards,
+    const animation = animate(cards, {
       opacity: [0, 1],
       translateY: [50, 0],
       scale: [0.9, 1],
       duration: 600,
-      delay: anime.stagger(100, { start: 0 }), // 100ms between each card
-      easing: 'easeOutCubic',
-      complete: () => {
+      delay: stagger(100, { start: 0 }), // 100ms between each card
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete('cards-entrance');
       }
     });
@@ -118,20 +120,19 @@ class AnimationService {
     }
 
     // Reset initial state
-    anime.set(cardElement, {
+    set(cardElement, {
       opacity: 0,
       translateY: 30,
       scale: 0.95
     });
 
-    const animation = anime({
-      targets: cardElement,
+    const animation = animate(cardElement, {
       opacity: [0, 1],
       translateY: [30, 0],
       scale: [0.95, 1],
       duration: 500,
-      easing: 'easeOutBack',
-      complete: () => {
+      ease: 'out-back',
+      onComplete: () => {
         this.activeAnimations.delete(`card-add-${cardElement.id}`);
       }
     });
@@ -148,15 +149,14 @@ class AnimationService {
       return;
     }
 
-    const animation = anime({
-      targets: cardElement,
+    const animation = animate(cardElement, {
       opacity: [1, 0],
-      translateX: [-100, 0],
+      translateX: [0, -100],
       scale: [1, 0.8],
-      rotateZ: [-5, 0],
+      rotate: [0, -5],
       duration: 400,
-      easing: 'easeInCubic',
-      complete: () => {
+      ease: 'in-cubic',
+      onComplete: () => {
         this.activeAnimations.delete(`card-remove-${cardElement.id}`);
         if (onComplete) onComplete();
       }
@@ -174,12 +174,11 @@ class AnimationService {
     // Cancel any existing hover animation for this card
     this.cancelAnimation(`card-hover-${cardElement.id}`);
 
-    const animation = anime({
-      targets: cardElement,
+    const animation = animate(cardElement, {
       translateY: -8,
       scale: 1.02,
       duration: 300,
-      easing: 'easeOutCubic'
+      ease: 'out-cubic'
     });
 
     this.registerAnimation(`card-hover-${cardElement.id}`, animation);
@@ -194,12 +193,11 @@ class AnimationService {
     // Cancel any existing hover animation for this card
     this.cancelAnimation(`card-hover-${cardElement.id}`);
 
-    const animation = anime({
-      targets: cardElement,
+    const animation = animate(cardElement, {
       translateY: 0,
       scale: 1,
       duration: 300,
-      easing: 'easeOutCubic'
+      ease: 'out-cubic'
     });
 
     this.registerAnimation(`card-hover-${cardElement.id}`, animation);
@@ -218,29 +216,27 @@ class AnimationService {
       return;
     }
 
-    const timeline = anime.timeline({
-      easing: 'easeOutCubic',
-      complete: () => {
+    const tl = createTimeline({
+      onComplete: () => {
         this.activeAnimations.delete(`status-${badgeElement.id}`);
         if (onComplete) onComplete();
       }
     });
 
-    timeline
-      .add({
-        targets: badgeElement,
-        scale: [1, 1.2],
-        opacity: [1, 0.7],
-        duration: 200
-      })
-      .add({
-        targets: badgeElement,
-        scale: [1.2, 1],
-        opacity: [0.7, 1],
-        duration: 200
-      });
+    // Timeline.add() signature: add(target, parameters, position)
+    tl.add(badgeElement, {
+      scale: [1, 1.2],
+      opacity: [1, 0.7],
+      duration: 200,
+      ease: 'out-cubic'
+    }).add(badgeElement, {
+      scale: [1.2, 1],
+      opacity: [0.7, 1],
+      duration: 200,
+      ease: 'out-cubic'
+    });
 
-    this.registerAnimation(`status-${badgeElement.id}`, timeline);
+    this.registerAnimation(`status-${badgeElement.id}`, tl);
   }
 
   /**
@@ -249,13 +245,12 @@ class AnimationService {
   pulseElement(element: HTMLElement, count: number = 2) {
     if (!this.shouldAnimate()) return;
 
-    const animation = anime({
-      targets: element,
+    const animation = animate(element, {
       scale: [1, 1.05, 1],
       duration: 500,
-      easing: 'easeInOutQuad',
+      ease: 'inout-quad',
       loop: count,
-      complete: () => {
+      onComplete: () => {
         this.activeAnimations.delete(`pulse-${element.id}`);
       }
     });
@@ -282,13 +277,12 @@ class AnimationService {
       return;
     }
 
-    const animation = anime({
-      targets: container,
+    const animation = animate(container, {
       opacity: [1, 0],
       translateY: [0, -20],
       duration: 300,
-      easing: 'easeInCubic',
-      complete: () => {
+      ease: 'in-cubic',
+      onComplete: () => {
         this.activeAnimations.delete('view-fade-out');
         if (onComplete) onComplete();
       }
@@ -313,18 +307,17 @@ class AnimationService {
     if (!container) return;
 
     // Reset initial state
-    anime.set(container, {
+    set(container, {
       opacity: 0,
       translateY: 20
     });
 
-    const animation = anime({
-      targets: container,
+    const animation = animate(container, {
       opacity: [0, 1],
       translateY: [20, 0],
       duration: 400,
-      easing: 'easeOutCubic',
-      complete: () => {
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete('view-fade-in');
       }
     });
@@ -359,11 +352,10 @@ class AnimationService {
   animateInputFocus(inputElement: HTMLElement) {
     if (!this.shouldAnimate()) return;
 
-    const animation = anime({
-      targets: inputElement,
+    const animation = animate(inputElement, {
       scale: [1, 1.02, 1],
       duration: 300,
-      easing: 'easeOutCubic'
+      ease: 'out-cubic'
     });
 
     this.registerAnimation(`input-focus-${inputElement.id}`, animation);
@@ -378,28 +370,24 @@ class AnimationService {
       return;
     }
 
-    const timeline = anime.timeline({
-      complete: () => {
+    const tl = createTimeline({
+      onComplete: () => {
         this.activeAnimations.delete(`button-${buttonElement.id}`);
         if (onComplete) onComplete();
       }
     });
 
-    timeline
-      .add({
-        targets: buttonElement,
-        scale: 0.95,
-        duration: 100,
-        easing: 'easeOutCubic'
-      })
-      .add({
-        targets: buttonElement,
-        scale: 1,
-        duration: 100,
-        easing: 'easeOutCubic'
-      });
+    tl.add(buttonElement, {
+      scale: 0.95,
+      duration: 100,
+      ease: 'out-cubic'
+    }).add(buttonElement, {
+      scale: 1,
+      duration: 100,
+      ease: 'out-cubic'
+    });
 
-    this.registerAnimation(`button-${buttonElement.id}`, timeline);
+    this.registerAnimation(`button-${buttonElement.id}`, tl);
   }
 
   /**
@@ -415,41 +403,38 @@ class AnimationService {
     }
 
     // Reset initial state
-    anime.set(messageElement, {
+    set(messageElement, {
       opacity: 0,
       translateY: -20
     });
 
-    const timeline = anime.timeline({
-      complete: () => {
+    const tl = createTimeline({
+      onComplete: () => {
         this.activeAnimations.delete(`message-${messageElement.id}`);
       }
     });
 
-    timeline
+    tl
       // Fade in
-      .add({
-        targets: messageElement,
+      .add(messageElement, {
         opacity: [0, 1],
         translateY: [-20, 0],
         duration: 400,
-        easing: 'easeOutCubic'
+        ease: 'out-cubic'
       })
-      // Hold
+      // Hold - add a timer without target
       .add({
-        targets: messageElement,
         duration: duration
       })
       // Fade out
-      .add({
-        targets: messageElement,
+      .add(messageElement, {
         opacity: [1, 0],
         translateY: [0, 20],
         duration: 400,
-        easing: 'easeInCubic'
+        ease: 'in-cubic'
       });
 
-    this.registerAnimation(`message-${messageElement.id}`, timeline);
+    this.registerAnimation(`message-${messageElement.id}`, tl);
   }
 
   // ========================================
@@ -466,20 +451,19 @@ class AnimationService {
     }
 
     // Reset initial state
-    anime.set(chartContainer, {
+    set(chartContainer, {
       opacity: 0,
       translateY: 30,
       scale: 0.95
     });
 
-    const animation = anime({
-      targets: chartContainer,
+    const animation = animate(chartContainer, {
       opacity: [0, 1],
       translateY: [30, 0],
       scale: [0.95, 1],
       duration: 600,
-      easing: 'easeOutCubic',
-      complete: () => {
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete(`chart-${chartContainer.id}`);
       }
     });
@@ -497,21 +481,20 @@ class AnimationService {
     if (!charts.length) return;
 
     // Reset initial state
-    anime.set(charts, {
+    set(charts, {
       opacity: 0,
       translateY: 50,
       scale: 0.95
     });
 
-    const animation = anime({
-      targets: charts,
+    const animation = animate(charts, {
       opacity: [0, 1],
       translateY: [50, 0],
       scale: [0.95, 1],
       duration: 700,
-      delay: anime.stagger(150),
-      easing: 'easeOutCubic',
-      complete: () => {
+      delay: stagger(150),
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete('charts-entrance');
       }
     });
@@ -535,12 +518,11 @@ class AnimationService {
 
     loadingElement.style.display = 'block';
 
-    const animation = anime({
-      targets: loadingElement,
+    const animation = animate(loadingElement, {
       opacity: [0, 1],
       scale: [0.8, 1],
       duration: 300,
-      easing: 'easeOutCubic'
+      ease: 'out-cubic'
     });
 
     this.registerAnimation('loading-show', animation);
@@ -556,13 +538,12 @@ class AnimationService {
       return;
     }
 
-    const animation = anime({
-      targets: loadingElement,
+    const animation = animate(loadingElement, {
       opacity: [1, 0],
       scale: [1, 0.8],
       duration: 300,
-      easing: 'easeInCubic',
-      complete: () => {
+      ease: 'in-cubic',
+      onComplete: () => {
         loadingElement.style.display = 'none';
         this.activeAnimations.delete('loading-hide');
         if (onComplete) onComplete();
@@ -582,17 +563,16 @@ class AnimationService {
   shake(element: HTMLElement) {
     if (!this.shouldAnimate()) return;
 
-    const animation = anime({
-      targets: element,
+    const animation = animate(element, {
       translateX: [
-        { value: -10, duration: 100 },
-        { value: 10, duration: 100 },
-        { value: -10, duration: 100 },
-        { value: 10, duration: 100 },
-        { value: 0, duration: 100 }
+        { to: -10, duration: 100 },
+        { to: 10, duration: 100 },
+        { to: -10, duration: 100 },
+        { to: 10, duration: 100 },
+        { to: 0, duration: 100 }
       ],
-      easing: 'easeOutCubic',
-      complete: () => {
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete(`shake-${element.id}`);
       }
     });
@@ -606,15 +586,14 @@ class AnimationService {
   bounce(element: HTMLElement, height: number = 20) {
     if (!this.shouldAnimate()) return;
 
-    const animation = anime({
-      targets: element,
+    const animation = animate(element, {
       translateY: [
-        { value: -height, duration: 200 },
-        { value: 0, duration: 200 }
+        { to: -height, duration: 200 },
+        { to: 0, duration: 200 }
       ],
-      easing: 'easeOutCubic',
+      ease: 'out-cubic',
       loop: 2,
-      complete: () => {
+      onComplete: () => {
         this.activeAnimations.delete(`bounce-${element.id}`);
       }
     });
@@ -631,18 +610,17 @@ class AnimationService {
       return;
     }
 
-    anime.set(element, {
+    set(element, {
       opacity: 0,
       translateX: 100
     });
 
-    const animation = anime({
-      targets: element,
+    const animation = animate(element, {
       opacity: [0, 1],
       translateX: [100, 0],
       duration: 400,
-      easing: 'easeOutCubic',
-      complete: () => {
+      ease: 'out-cubic',
+      onComplete: () => {
         this.activeAnimations.delete(`slide-${element.id}`);
       }
     });
@@ -659,13 +637,12 @@ class AnimationService {
       return;
     }
 
-    const animation = anime({
-      targets: element,
+    const animation = animate(element, {
       opacity: [1, 0],
       translateX: [0, -100],
       duration: 400,
-      easing: 'easeInCubic',
-      complete: () => {
+      ease: 'in-cubic',
+      onComplete: () => {
         this.activeAnimations.delete(`slide-${element.id}`);
         if (onComplete) onComplete();
       }
