@@ -79,4 +79,13 @@ export interface AnalyticsMetrics {
   statusDistribution: Record<ApplicationStatus, number>;
   weeklyVelocity: Array<{ week: string; count: number }>;
   funnelData: Array<{ stage: string; count: number; conversionRate: number }>;
+  dropOffAnalysis?: Array<{ fromStage: string; toStage: string; dropOffRate: number; count: number }>;
+  timingAnalysis?: {
+    byDayOfWeek: Record<string, { count: number; successRate: number }>;
+    byWeekOfMonth: Record<string, { count: number; successRate: number }>;
+  };
+  visaImpact?: {
+    withVisa: { total: number; offers: number; successRate: number; responseRate: number };
+    withoutVisa: { total: number; offers: number; successRate: number; responseRate: number };
+  };
 }

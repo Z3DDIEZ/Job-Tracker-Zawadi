@@ -25,6 +25,9 @@ export class AnalyticsService {
     const averageTimeInStatus = this.calculateAverageTimeInStatus(applications);
     const weeklyVelocity = this.calculateWeeklyVelocity(applications);
     const funnelData = this.calculateFunnelData(applications);
+    const dropOffAnalysis = this.calculateDropOffAnalysis(applications);
+    const timingAnalysis = this.calculateTimingAnalysis(applications);
+    const visaImpact = this.calculateVisaImpact(applications);
 
     return {
       totalApplications,
@@ -34,6 +37,9 @@ export class AnalyticsService {
       statusDistribution,
       weeklyVelocity,
       funnelData,
+      dropOffAnalysis,
+      timingAnalysis,
+      visaImpact,
     };
   }
 
@@ -231,6 +237,157 @@ export class AnalyticsService {
       },
       weeklyVelocity: [],
       funnelData: [],
+      dropOffAnalysis: [],
+      timingAnalysis: {
+        byDayOfWeek: {},
+        byWeekOfMonth: {},
+      },
+      visaImpact: {
+        withVisa: { total: 0, offers: 0, successRate: 0, responseRate: 0 },
+        withoutVisa: { total: 0, offers: 0, successRate: 0, responseRate: 0 },
+      },
+    };
+  }
+
+  /**
+   * Calculate drop-off analysis between stages
+   */
+  private calculateDropOffAnalysis(
+    applications: JobApplication[]
+  ): Array<{ fromStage: string; toStage: string; dropOffRate: number; count: number }> {
+    const stages: ApplicationStatus[] = [
+      'Applied',
+      'Phone Screen',
+      'Technical Interview',
+      'Final Round',
+      'Offer',
+    ];
+
+    const dropOffs: Array<{ fromStage: string; toStage: string; dropOffRate: number; count: number }> = [];
+
+    for (let i = 0; i < stages.length - 1; i++) {
+      const fromStage = stages[i];
+      const toStage = stages[i + 1];
+      
+      if (!fromStage || !toStage) continue;
+
+      const fromCount = applications.filter((app) => app.status === fromStage).length;
+      const toCount = applications.filter((app) => app.status === toStage).length;
+      
+      const dropOffRate = fromCount > 0 
+        ? Math.round(((fromCount - toCount) / fromCount) * 100 * 10) / 10
+        : 0;
+
+      dropOffs.push({
+        fromStage,
+        toStage,
+        dropOffRate,
+        count: fromCount - toCount,
+      });
+    }
+
+    return dropOffs;
+  }
+
+  /**
+   * Calculate timing analysis (day of week, week of month)
+   */
+  private calculateTimingAnalysis(applications: JobApplication[]): {
+    byDayOfWeek: Record<string, { count: number; successRate: number }>;
+    byWeekOfMonth: Record<string, { count: number; successRate: number }>;
+  } {
+    const byDayOfWeek: Record<string, { count: number; offers: number }> = {};
+    const byWeekOfMonth: Record<string, { count: number; offers: number }> = {};
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    applications.forEach((app) => {
+      if (!app.dateApplied) return;
+
+      const date = new Date(app.dateApplied);
+      const dayOfWeek = dayNames[date.getDay()] || 'Unknown';
+      const weekOfMonth = Math.ceil(date.getDate() / 7);
+      const weekKey = `Week ${weekOfMonth}`;
+
+      // Day of week
+      if (!byDayOfWeek[dayOfWeek]) {
+        byDayOfWeek[dayOfWeek] = { count: 0, offers: 0 };
+      }
+      byDayOfWeek[dayOfWeek].count++;
+      if (app.status === 'Offer') {
+        byDayOfWeek[dayOfWeek].offers++;
+      }
+
+      // Week of month
+      if (!byWeekOfMonth[weekKey]) {
+        byWeekOfMonth[weekKey] = { count: 0, offers: 0 };
+      }
+      byWeekOfMonth[weekKey].count++;
+      if (app.status === 'Offer') {
+        byWeekOfMonth[weekKey].offers++;
+      }
+    });
+
+    // Calculate success rates
+    const dayOfWeekResults: Record<string, { count: number; successRate: number }> = {};
+    Object.entries(byDayOfWeek).forEach(([day, data]) => {
+      dayOfWeekResults[day] = {
+        count: data.count,
+        successRate: data.count > 0 ? Math.round((data.offers / data.count) * 100 * 10) / 10 : 0,
+      };
+    });
+
+    const weekOfMonthResults: Record<string, { count: number; successRate: number }> = {};
+    Object.entries(byWeekOfMonth).forEach(([week, data]) => {
+      weekOfMonthResults[week] = {
+        count: data.count,
+        successRate: data.count > 0 ? Math.round((data.offers / data.count) * 100 * 10) / 10 : 0,
+      };
+    });
+
+    return {
+      byDayOfWeek: dayOfWeekResults,
+      byWeekOfMonth: weekOfMonthResults,
+    };
+  }
+
+  /**
+   * Calculate visa sponsorship impact
+   */
+  private calculateVisaImpact(applications: JobApplication[]): {
+    withVisa: { total: number; offers: number; successRate: number; responseRate: number };
+    withoutVisa: { total: number; offers: number; successRate: number; responseRate: number };
+  } {
+    const withVisa = applications.filter((app) => app.visaSponsorship === true);
+    const withoutVisa = applications.filter((app) => app.visaSponsorship === false);
+
+    const withVisaOffers = withVisa.filter((app) => app.status === 'Offer').length;
+    const withoutVisaOffers = withoutVisa.filter((app) => app.status === 'Offer').length;
+
+    const withVisaResponses = withVisa.filter((app) => app.status !== 'Applied').length;
+    const withoutVisaResponses = withoutVisa.filter((app) => app.status !== 'Applied').length;
+
+    return {
+      withVisa: {
+        total: withVisa.length,
+        offers: withVisaOffers,
+        successRate: withVisa.length > 0 
+          ? Math.round((withVisaOffers / withVisa.length) * 100 * 10) / 10 
+          : 0,
+        responseRate: withVisa.length > 0 
+          ? Math.round((withVisaResponses / withVisa.length) * 100 * 10) / 10 
+          : 0,
+      },
+      withoutVisa: {
+        total: withoutVisa.length,
+        offers: withoutVisaOffers,
+        successRate: withoutVisa.length > 0 
+          ? Math.round((withoutVisaOffers / withoutVisa.length) * 100 * 10) / 10 
+          : 0,
+        responseRate: withoutVisa.length > 0 
+          ? Math.round((withoutVisaResponses / withoutVisa.length) * 100 * 10) / 10 
+          : 0,
+      },
     };
   }
 
@@ -349,6 +506,69 @@ export class AnalyticsService {
             `⏱️ Applications spend an average of ${longestDays} days in "${longestStatus}". Consider following up if appropriate.`
           );
           recommendations.push('💡 Action: Set reminders to follow up on applications after 2 weeks of no response.');
+        }
+      }
+    }
+
+    // Behavioral analytics insights
+    if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
+      const highestDropOff = metrics.dropOffAnalysis.reduce((max, current) => 
+        current.dropOffRate > max.dropOffRate ? current : max
+      );
+      
+      if (highestDropOff.dropOffRate > 50) {
+        insights.push(
+          `📉 Highest drop-off: ${highestDropOff.fromStage} → ${highestDropOff.toStage} (${highestDropOff.dropOffRate}% drop-off rate)`
+        );
+      }
+    }
+
+    // Timing insights
+    if (metrics.timingAnalysis) {
+      const { byDayOfWeek, byWeekOfMonth } = metrics.timingAnalysis;
+      
+      // Find best day of week
+      const bestDay = Object.entries(byDayOfWeek)
+        .filter(([_, data]) => data.count >= 3) // Need at least 3 applications for meaningful data
+        .sort(([_, a], [__, b]) => b.successRate - a.successRate)[0];
+      
+      if (bestDay) {
+        const [day, data] = bestDay;
+        insights.push(
+          `📅 Best application day: ${day} (${data.successRate}% success rate from ${data.count} applications)`
+        );
+      }
+
+      // Find best week of month
+      const bestWeek = Object.entries(byWeekOfMonth)
+        .filter(([_, data]) => data.count >= 3)
+        .sort(([_, a], [__, b]) => b.successRate - a.successRate)[0];
+      
+      if (bestWeek) {
+        const [week, data] = bestWeek;
+        insights.push(
+          `📆 Best application week: ${week} of month (${data.successRate}% success rate from ${data.count} applications)`
+        );
+      }
+    }
+
+    // Visa sponsorship insights
+    if (metrics.visaImpact) {
+      const { withVisa, withoutVisa } = metrics.visaImpact;
+      
+      if (withVisa.total > 0 && withoutVisa.total > 0) {
+        const visaAdvantage = withVisa.successRate - withoutVisa.successRate;
+        
+        if (Math.abs(visaAdvantage) > 5) {
+          if (visaAdvantage > 0) {
+            insights.push(
+              `🌍 Visa sponsorship advantage: ${visaAdvantage.toFixed(1)}% higher success rate with visa sponsorship`
+            );
+          } else {
+            insights.push(
+              `🌍 Note: ${Math.abs(visaAdvantage).toFixed(1)}% lower success rate with visa sponsorship (may indicate more competitive roles)`
+            );
+          }
         }
       }
     }

@@ -21,11 +21,13 @@ import { FilterManager } from './utils/filters';
 import { SortManager } from './utils/sorting';
 import { CacheManager } from './utils/cache';
 import { analyticsService } from './services/analytics';
+import { eventTrackingService } from './services/eventTracking';
 import { createStatCard } from './components/stats/StatCard';
 import { createStatusDistributionChart } from './components/charts/StatusDistributionChart';
 import { createApplicationFunnelChart } from './components/charts/ApplicationFunnelChart';
 import { createVelocityChart } from './components/charts/VelocityChart';
 import { createTimeInStatusChart } from './components/charts/TimeInStatusChart';
+import { createVisaImpactChart } from './components/charts/VisaImpactChart';
 import { PaginationManager } from './utils/pagination';
 import { createTableView, type ViewMode } from './utils/viewModes';
 import {
@@ -266,6 +268,11 @@ function addApplication(
     .set(applicationData)
     .then(() => {
       console.log('✅ Application saved successfully');
+      eventTrackingService.track('application_added', {
+        company: sanitizedCompany,
+        status,
+        visaSponsorship,
+      });
       showSuccessMessage('Application added successfully!');
       form.reset();
       submitBtn.disabled = false;
@@ -313,6 +320,18 @@ function updateApplication(
   secureFirebaseUpdate(database!, 'applications', id, updatedData)
     .then(() => {
       console.log('✅ Application updated successfully');
+      const oldStatus = originalApplicationData?.status;
+      if (oldStatus && oldStatus !== status) {
+        eventTrackingService.track('status_changed', {
+          applicationId: id,
+          fromStatus: oldStatus,
+          toStatus: status,
+        });
+      }
+      eventTrackingService.track('application_updated', {
+        applicationId: id,
+        company,
+      });
       showSuccessMessage(`Application for ${company} updated successfully!`);
       originalApplicationData = null; // Clear stored data after successful update
       cancelEdit();
@@ -378,6 +397,10 @@ export function deleteApplication(id: string): void {
         secureFirebaseDelete(database!, 'applications', id)
           .then(() => {
             console.log('✅ Application deleted successfully');
+            eventTrackingService.track('application_deleted', {
+              applicationId: id,
+              company: app.company,
+            });
             showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
             CacheManager.invalidate();
           })
@@ -888,6 +911,9 @@ function addCSVExportButton(_apps: JobApplication[]): void {
     
     const filtered = FilterManager.applyFilters(filteredApps, appFilters);
     const filename = `job-applications-${new Date().toISOString().split('T')[0]}.csv`;
+    eventTrackingService.track('export_csv', {
+      applicationCount: filtered.length,
+    });
     exportToCSV(filtered, filename);
   });
 
@@ -988,6 +1014,9 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
     exportBtn.addEventListener('click', () => {
       const chart = chartInstances.get(id);
       if (chart) {
+        eventTrackingService.track('export_chart', {
+          chartType: id,
+        });
         exportChartAsPNG(chart, filename);
       }
     });
@@ -1020,6 +1049,11 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
 
   // Time in Status Chart
   createChartContainer('time-status-chart', 'Average Time in Status', 'time-in-status.png');
+
+  // Visa Impact Chart (only if we have visa data)
+  if (metrics.visaImpact && (metrics.visaImpact.withVisa.total > 0 || metrics.visaImpact.withoutVisa.total > 0)) {
+    createChartContainer('visa-impact-chart', 'Visa Sponsorship Impact', 'visa-impact.png');
+  }
 
   // Render all charts after DOM is ready
   setTimeout(() => {
@@ -1057,6 +1091,18 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
         averageTimeInStatus: metrics.averageTimeInStatus,
       });
       chartInstances.set('time-status-chart', chart);
+    }
+
+    // Visa Impact Chart
+    if (metrics.visaImpact && (metrics.visaImpact.withVisa.total > 0 || metrics.visaImpact.withoutVisa.total > 0)) {
+      const visaCanvas = document.getElementById('visa-impact-chart') as HTMLCanvasElement;
+      if (visaCanvas) {
+        const chart = createVisaImpactChart(visaCanvas, {
+          withVisa: metrics.visaImpact.withVisa,
+          withoutVisa: metrics.visaImpact.withoutVisa,
+        });
+        chartInstances.set('visa-impact-chart', chart);
+      }
     }
   }, 100);
 }
@@ -1103,6 +1149,7 @@ export function switchViewMode(mode: ViewMode): void {
 
   // Show/hide sections
   if (mode === 'analytics') {
+    eventTrackingService.track('analytics_viewed');
     if (analyticsSection) analyticsSection.style.display = 'block';
     if (applicationsContainer?.parentElement) {
       (applicationsContainer.parentElement as HTMLElement).style.display = 'none';
@@ -1175,6 +1222,9 @@ if (searchInput) {
   searchInput.addEventListener('input', (e) => {
     const target = e.target as HTMLInputElement;
     updateFilter('search', target.value);
+    if (target.value.length > 0) {
+      eventTrackingService.track('search_performed', { query: target.value });
+    }
     processAndDisplayApplications();
   });
 }
@@ -1183,6 +1233,10 @@ if (statusFilter) {
   statusFilter.addEventListener('change', (e) => {
     const target = e.target as HTMLSelectElement;
     updateFilter('status', target.value as ApplicationStatus | 'all');
+    eventTrackingService.track('filter_applied', {
+      filterType: 'status',
+      value: target.value,
+    });
     processAndDisplayApplications();
   });
 }
@@ -1243,11 +1297,19 @@ function showLoadingState(): void {
 
 export function handleDateRangeChange(value: string): void {
   updateFilter('dateRange', value as 'all' | 'week' | 'month' | 'quarter');
+  eventTrackingService.track('filter_applied', {
+    filterType: 'dateRange',
+    value,
+  });
   processAndDisplayApplications();
 }
 
 export function handleVisaFilterChange(value: string): void {
   updateFilter('visaSponsorship', value as 'all' | 'true' | 'false');
+  eventTrackingService.track('filter_applied', {
+    filterType: 'visaSponsorship',
+    value,
+  });
   processAndDisplayApplications();
 }
 
@@ -1261,7 +1323,7 @@ export function handleSortChange(value: string): void {
 // ========================================
 
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 App initialized (Enhanced v2.0 with TypeScript)');
+  console.log('🚀 App initialized (Enhanced v2.4.0 with TypeScript)');
   
   // Initialize Firebase and only load applications if successful
   const firebaseInitialized = initializeFirebase();
