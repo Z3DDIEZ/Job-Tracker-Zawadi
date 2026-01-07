@@ -1,6 +1,6 @@
 {
   "name": "job-application-tracker",
-  "version": "2.5.1",
+  "version": "3.0.0",
   "description": "A data-driven job search assistant - Personal productivity platform with full-stack capabilities",
   "type": "module",
   "scripts": {

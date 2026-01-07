@@ -1731,3 +1731,27 @@ footer a:hover {
         height: 250px;
     }
 }
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Animation Performance */
+.application-card,
+.chart-container,
+.application-table tbody tr {
+    will-change: transform, opacity;
+}
+
+/* Smooth transitions for status badges */
+.status-badge {
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}

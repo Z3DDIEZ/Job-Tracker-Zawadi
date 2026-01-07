@@ -47,6 +47,7 @@ import {
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
 import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
+import { AnimationService } from './services/animationService';
 import type { Chart } from 'chart.js';
 import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
@@ -252,6 +253,7 @@ function addApplication(
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Saving...';
+  AnimationService.animateButtonLoading(submitBtn);
 
   // Use secure Firebase reference (no ID needed for push)
   const newApplicationRef = secureFirebaseRef(database!, 'applications').push();
@@ -271,7 +273,7 @@ function addApplication(
     .then(() => {
       console.log('✅ Application saved successfully');
       eventTrackingService.track('application_added', {
-        company: sanitizedCompany,
+        company,
         status,
         visaSponsorship,
       });
@@ -284,6 +286,7 @@ function addApplication(
     .catch((error: unknown) => {
       console.error('❌ Error saving application:', error);
       showErrorMessage('Failed to save application. Please try again.');
+      AnimationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add Application';
     });
@@ -329,6 +332,26 @@ function updateApplication(
           fromStatus: oldStatus,
           toStatus: status,
         });
+        
+        // Animate status change
+        const statusBadge = document.querySelector(`[data-app-id="${id}"] .status-badge`) as HTMLElement;
+        const card = document.querySelector(`[data-app-id="${id}"]`) as HTMLElement;
+        if (statusBadge) {
+          // Get status color from CSS or use default
+          const statusColors: Record<string, string> = {
+            'Applied': '#dbeafe',
+            'Phone Screen': '#fef3c7',
+            'Technical Interview': '#fce7f3',
+            'Final Round': '#e0e7ff',
+            'Offer': '#d1fae5',
+            'Rejected': '#fee2e2',
+          };
+          const newColor = statusColors[status] || '#dbeafe';
+          AnimationService.animateStatusChange(statusBadge, newColor);
+        }
+        if (card) {
+          AnimationService.animateHighlight(card);
+        }
       }
       eventTrackingService.track('application_updated', {
         applicationId: id,
@@ -337,6 +360,7 @@ function updateApplication(
       showSuccessMessage(`Application for ${company} updated successfully!`);
       originalApplicationData = null; // Clear stored data after successful update
       cancelEdit();
+      AnimationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       CacheManager.invalidate();
     })
@@ -350,6 +374,7 @@ function updateApplication(
       });
       
       showErrorMessage('Failed to update application. Please try again.');
+      AnimationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Update Application';
     });
@@ -395,6 +420,9 @@ export function deleteApplication(id: string): void {
       );
 
       if (confirmed) {
+        // Find and animate card deletion
+        const card = document.querySelector(`[data-app-id="${id}"], [data-id="${id}"]`) as HTMLElement;
+        
         // Use secure Firebase delete
         secureFirebaseDelete(database!, 'applications', id)
           .then(() => {
@@ -403,8 +431,17 @@ export function deleteApplication(id: string): void {
               applicationId: id,
               company: app.company,
             });
-            showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
-            CacheManager.invalidate();
+            
+            // Animate deletion
+            if (card) {
+              AnimationService.animateCardDeletion(card, () => {
+                showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
+                CacheManager.invalidate();
+              });
+            } else {
+              showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
+              CacheManager.invalidate();
+            }
           })
           .catch((error: unknown) => {
             console.error('❌ Error deleting application:', error);
@@ -575,6 +612,7 @@ function showErrorMessage(message: string): void {
   const form = document.getElementById('application-form');
   if (formSection && form) {
     formSection.insertBefore(messageDiv, form);
+    AnimationService.animateMessage(messageDiv, 'error');
   }
 
   setTimeout(() => {
@@ -591,6 +629,7 @@ function showInfoMessage(message: string): void {
   const form = document.getElementById('application-form');
   if (formSection && form) {
     formSection.insertBefore(messageDiv, form);
+    AnimationService.animateMessage(messageDiv, 'info');
   }
 
   setTimeout(() => {
@@ -747,12 +786,23 @@ function displayApplications(apps: JobApplication[]): void {
   if (currentViewMode === 'table') {
     const table = createTableView(paginatedApps);
     applicationsContainer.appendChild(table);
+    // Animate table rows entrance
+    setTimeout(() => {
+      const rows = table.querySelectorAll('tbody tr');
+      AnimationService.animateCardEntrance(rows as NodeListOf<HTMLElement>, { delay: 30 });
+    }, 50);
   } else {
     // Card view (default)
+    const cards: HTMLElement[] = [];
     paginatedApps.forEach((app) => {
       const appCard = createApplicationCard(app);
       applicationsContainer.appendChild(appCard);
+      cards.push(appCard);
     });
+    // Animate card entrance with stagger
+    setTimeout(() => {
+      AnimationService.animateCardEntrance(cards, { delay: 50, startDelay: 100 });
+    }, 50);
   }
 
   // Add pagination controls if needed
@@ -1131,6 +1181,13 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
 
   // Render all charts after DOM is ready
   setTimeout(() => {
+    // Animate chart containers entrance
+    const chartContainers = chartsContainer.querySelectorAll('.chart-container');
+    if (chartContainers.length > 0) {
+      AnimationService.animateChartEntrance(chartContainers as NodeListOf<HTMLElement>, { delay: 100 });
+    }
+    
+    // Render charts
     // Status Distribution
     const statusCanvas = document.getElementById('status-chart') as HTMLCanvasElement;
     if (statusCanvas) {
@@ -1244,6 +1301,7 @@ function attachPaginationListeners(pagination: ReturnType<typeof PaginationManag
 }
 
 export function switchViewMode(mode: ViewMode): void {
+  const previousMode = currentViewMode;
   currentViewMode = mode;
   currentPage = 1; // Reset to first page
 
@@ -1255,21 +1313,43 @@ export function switchViewMode(mode: ViewMode): void {
     }
   });
 
-  // Show/hide sections
+  // Get elements for transition
+  const applicationsSectionElement = applicationsContainer?.parentElement as HTMLElement | null;
+  
+  // Show/hide sections with animation
   if (mode === 'analytics') {
     eventTrackingService.track('analytics_viewed');
+    
+    // Animate transition to analytics view
+    if (previousMode !== 'analytics') {
+      AnimationService.transitionView(
+        applicationsSectionElement || null,
+        analyticsSection,
+        { duration: 300, direction: 'horizontal' }
+      );
+    }
+    
     if (analyticsSection) analyticsSection.style.display = 'block';
-    if (applicationsContainer?.parentElement) {
-      (applicationsContainer.parentElement as HTMLElement).style.display = 'none';
+    if (applicationsSectionElement) {
+      // Will be hidden by animation
     }
     // Keep filters visible in analytics view (they apply to analytics data)
     // Hide sort controls as they don't apply to analytics
     const sortSection = document.querySelector('.sort-controls')?.parentElement;
     if (sortSection) (sortSection as HTMLElement).style.display = 'none';
   } else {
+    // Animate transition to cards/table view
+    if (previousMode === 'analytics') {
+      AnimationService.transitionView(
+        analyticsSection,
+        applicationsSectionElement || null,
+        { duration: 300, direction: 'horizontal' }
+      );
+    }
+    
     if (analyticsSection) analyticsSection.style.display = 'none';
-    if (applicationsContainer?.parentElement) {
-      (applicationsContainer.parentElement as HTMLElement).style.display = 'block';
+    if (applicationsSectionElement) {
+      applicationsSectionElement.style.display = 'block';
     }
     // Show filters and sort when in cards/table view
     const filtersSection = document.querySelector('.advanced-filters')?.parentElement;
@@ -1464,6 +1544,17 @@ window.addEventListener('DOMContentLoaded', () => {
   const visaFilter = document.getElementById('visa-filter') as HTMLSelectElement;
   const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
   const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
+  
+  // Add form field focus animations
+  const formFields = form?.querySelectorAll('input, select, textarea');
+  formFields?.forEach((field) => {
+    field.addEventListener('focus', () => {
+      AnimationService.animateFormFieldFocus(field as HTMLElement);
+    });
+    field.addEventListener('blur', () => {
+      AnimationService.animateFormFieldBlur(field as HTMLElement);
+    });
+  });
 
   // Initialize sort dropdown
   if (sortSelect) {
