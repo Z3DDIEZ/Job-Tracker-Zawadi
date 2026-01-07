@@ -1595,11 +1595,66 @@ footer a:hover {
     margin-top: var(--space-4);
 }
 
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
 .chart-title {
     font-size: var(--text-lg);
     font-weight: 600;
     color: var(--slate-900);
-    margin-bottom: var(--space-4);
+    margin: 0;
+}
+
+.chart-export-btn {
+    background: var(--accent);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-xs);
+}
+
+.chart-export-btn:hover {
+    background: var(--accent-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.chart-export-btn:active {
+    transform: translateY(0);
+}
+
+.csv-export-btn {
+    background: var(--success);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--text-base);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    margin: var(--space-4) 0;
+    display: inline-block;
+}
+
+.csv-export-btn:hover {
+    background: #047857;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.csv-export-btn:active {
+    transform: translateY(0);
 }
 
 /* Analytics Insights */

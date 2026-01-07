@@ -42,6 +42,8 @@ import {
   secureFirebaseRead,
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
+import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
+import type { Chart } from 'chart.js';
 import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
 // Firebase initialization
@@ -835,6 +837,9 @@ function displayAnalyticsDashboard(apps: JobApplication[]): void {
     applicationsContainer.innerHTML = '';
   }
 
+  // Add CSV export button to analytics section header
+  addCSVExportButton(apps);
+
   // Calculate metrics from filtered applications
   // This allows analytics to respect current filters
   const metrics = analyticsService.calculateMetrics(apps);
@@ -850,6 +855,44 @@ function displayAnalyticsDashboard(apps: JobApplication[]): void {
   if (insights.length > 0) {
     displayInsights(insights);
   }
+}
+
+function addCSVExportButton(_apps: JobApplication[]): void {
+  // Remove existing export button if any
+  const existingBtn = document.getElementById('csv-export-btn');
+  if (existingBtn) {
+    existingBtn.remove();
+  }
+
+  // Find analytics section header
+  const analyticsHeader = analyticsSection?.querySelector('h2');
+  if (!analyticsHeader) return;
+
+  // Create export button
+  const exportBtn = document.createElement('button');
+  exportBtn.id = 'csv-export-btn';
+  exportBtn.className = 'csv-export-btn';
+  exportBtn.textContent = '📊 Export CSV';
+  exportBtn.title = 'Export all applications as CSV';
+  exportBtn.addEventListener('click', () => {
+    const filteredApps = applications.get();
+    const currentFilters = filters.get();
+    
+    // Apply current filters to determine what to export
+    const appFilters = {
+      search: currentFilters.search || '',
+      status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
+      dateRange: (currentFilters.dateRange || 'all') as 'all' | 'week' | 'month' | 'quarter',
+      visaSponsorship: (currentFilters.visaSponsorship || 'all') as 'all' | 'true' | 'false',
+    };
+    
+    const filtered = FilterManager.applyFilters(filteredApps, appFilters);
+    const filename = `job-applications-${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(filtered, filename);
+  });
+
+  // Insert button after header
+  analyticsHeader.insertAdjacentElement('afterend', exportBtn);
 }
 
 function displayInsights(insights: string[]): void {
@@ -913,22 +956,44 @@ function displayStatCards(metrics: ReturnType<typeof analyticsService.calculateM
   statCards.forEach((card) => statsGrid.appendChild(card));
 }
 
+// Store chart instances for export
+const chartInstances: Map<string, Chart> = new Map();
+
 function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetrics>): void {
   if (!chartsContainer) return;
 
   chartsContainer.innerHTML = '';
+  chartInstances.clear(); // Clear previous chart instances
 
-  // Helper function to create a chart container
+  // Helper function to create a chart container with export button
   const createChartContainer = (
     id: string,
-    title: string
+    title: string,
+    filename: string
   ): { container: HTMLDivElement; wrapper: HTMLDivElement; canvas: HTMLCanvasElement } => {
     const container = document.createElement('div');
     container.className = 'chart-container';
 
+    const header = document.createElement('div');
+    header.className = 'chart-header';
+
     const chartTitle = document.createElement('div');
     chartTitle.className = 'chart-title';
     chartTitle.textContent = title;
+
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'chart-export-btn';
+    exportBtn.textContent = '📥 Export PNG';
+    exportBtn.title = 'Export chart as PNG image';
+    exportBtn.addEventListener('click', () => {
+      const chart = chartInstances.get(id);
+      if (chart) {
+        exportChartAsPNG(chart, filename);
+      }
+    });
+
+    header.appendChild(chartTitle);
+    header.appendChild(exportBtn);
 
     const wrapper = document.createElement('div');
     wrapper.className = 'chart-wrapper';
@@ -937,7 +1002,7 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
     canvas.id = id;
 
     wrapper.appendChild(canvas);
-    container.appendChild(chartTitle);
+    container.appendChild(header);
     container.appendChild(wrapper);
     chartsContainer.appendChild(container);
 
@@ -945,49 +1010,53 @@ function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetr
   };
 
   // Status Distribution Chart
-  createChartContainer('status-chart', 'Status Distribution');
+  createChartContainer('status-chart', 'Status Distribution', 'status-distribution.png');
 
   // Application Funnel Chart
-  createChartContainer('funnel-chart', 'Application Funnel');
+  createChartContainer('funnel-chart', 'Application Funnel', 'application-funnel.png');
 
   // Velocity Chart
-  createChartContainer('velocity-chart', 'Weekly Application Velocity');
+  createChartContainer('velocity-chart', 'Weekly Application Velocity', 'weekly-velocity.png');
 
   // Time in Status Chart
-  createChartContainer('time-status-chart', 'Average Time in Status');
+  createChartContainer('time-status-chart', 'Average Time in Status', 'time-in-status.png');
 
   // Render all charts after DOM is ready
   setTimeout(() => {
     // Status Distribution
     const statusCanvas = document.getElementById('status-chart') as HTMLCanvasElement;
     if (statusCanvas) {
-      createStatusDistributionChart(statusCanvas, {
+      const chart = createStatusDistributionChart(statusCanvas, {
         statusDistribution: metrics.statusDistribution,
       });
+      chartInstances.set('status-chart', chart);
     }
 
     // Funnel Chart
     const funnelCanvas = document.getElementById('funnel-chart') as HTMLCanvasElement;
     if (funnelCanvas) {
-      createApplicationFunnelChart(funnelCanvas, {
+      const chart = createApplicationFunnelChart(funnelCanvas, {
         funnelData: metrics.funnelData,
       });
+      chartInstances.set('funnel-chart', chart);
     }
 
     // Velocity Chart
     const velocityCanvas = document.getElementById('velocity-chart') as HTMLCanvasElement;
     if (velocityCanvas) {
-      createVelocityChart(velocityCanvas, {
+      const chart = createVelocityChart(velocityCanvas, {
         weeklyVelocity: metrics.weeklyVelocity,
       });
+      chartInstances.set('velocity-chart', chart);
     }
 
     // Time in Status Chart
     const timeStatusCanvas = document.getElementById('time-status-chart') as HTMLCanvasElement;
     if (timeStatusCanvas) {
-      createTimeInStatusChart(timeStatusCanvas, {
+      const chart = createTimeInStatusChart(timeStatusCanvas, {
         averageTimeInStatus: metrics.averageTimeInStatus,
       });
+      chartInstances.set('time-status-chart', chart);
     }
   }, 100);
 }
@@ -1038,10 +1107,9 @@ export function switchViewMode(mode: ViewMode): void {
     if (applicationsContainer?.parentElement) {
       (applicationsContainer.parentElement as HTMLElement).style.display = 'none';
     }
-    // Hide filters and sort when in analytics (they still apply to analytics data)
-    const filtersSection = document.querySelector('.advanced-filters')?.parentElement;
+    // Keep filters visible in analytics view (they apply to analytics data)
+    // Hide sort controls as they don't apply to analytics
     const sortSection = document.querySelector('.sort-controls')?.parentElement;
-    if (filtersSection) (filtersSection as HTMLElement).style.display = 'none';
     if (sortSection) (sortSection as HTMLElement).style.display = 'none';
   } else {
     if (analyticsSection) analyticsSection.style.display = 'none';
@@ -1281,8 +1349,6 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-
-  loadApplications();
 });
 
 // Make functions globally accessible for inline handlers

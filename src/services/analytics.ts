@@ -239,6 +239,7 @@ export class AnalyticsService {
    */
   getInsights(metrics: AnalyticsMetrics): string[] {
     const insights: string[] = [];
+    const recommendations: string[] = [];
 
     if (metrics.totalApplications === 0) {
       insights.push('Start adding applications to see insights!');
@@ -254,16 +255,25 @@ export class AnalyticsService {
       insights.push(
         `📈 Your success rate is ${metrics.successRate}%. Consider refining your application strategy.`
       );
+      recommendations.push('💡 Action: Review successful applications to identify patterns in company size, role type, or application timing.');
     } else if (metrics.successRate > 0) {
       insights.push(
         `💪 Your success rate is ${metrics.successRate}%. Keep applying and improving!`
       );
+      recommendations.push('💡 Action: Focus on quality over quantity. Tailor each application to the specific role and company.');
+    } else {
+      recommendations.push('💡 Action: Consider getting feedback on your resume and cover letter. Practice common interview questions.');
     }
 
     // Response rate insights
     if (metrics.responseRate < 30) {
       insights.push(
         `📧 Response rate is ${metrics.responseRate}%. Consider tailoring your applications more.`
+      );
+      recommendations.push('💡 Action: Customize your resume and cover letter for each application. Highlight relevant experience and keywords from the job description.');
+    } else if (metrics.responseRate > 70) {
+      insights.push(
+        `✅ Strong response rate of ${metrics.responseRate}%! Your applications are getting noticed.`
       );
     }
 
@@ -273,21 +283,78 @@ export class AnalyticsService {
       const avgRecent = recentWeeks.reduce((sum, w) => sum + w.count, 0) / recentWeeks.length;
       if (avgRecent < 2) {
         insights.push('⚡ Consider increasing your application velocity for better results.');
+        recommendations.push('💡 Action: Aim for 5-10 quality applications per week. Set aside dedicated time each day for job searching.');
+      } else if (avgRecent > 10) {
+        insights.push(`🚀 High application velocity (${avgRecent.toFixed(1)} per week)! Maintain quality while keeping momentum.`);
       }
     }
 
     // Funnel insights
     if (metrics.funnelData && metrics.funnelData.length > 0) {
-      const firstStage = metrics.funnelData[0];
-      const lastStage = metrics.funnelData[metrics.funnelData.length - 1];
-      const appliedCount = firstStage?.count || 0;
-      const offerCount = lastStage?.count || 0;
-      if (appliedCount > 0 && offerCount === 0) {
-        insights.push('🎯 Focus on improving interview performance to convert applications to offers.');
+      const stages = metrics.funnelData;
+      
+      // Check for drop-off points
+      for (let i = 1; i < stages.length; i++) {
+        const prevStage = stages[i - 1];
+        const currentStage = stages[i];
+        
+        if (!prevStage || !currentStage) continue;
+        
+        const dropOffRate = prevStage.count > 0 
+          ? ((prevStage.count - currentStage.count) / prevStage.count) * 100 
+          : 0;
+        
+        if (dropOffRate > 70 && prevStage.count > 3) {
+          insights.push(
+            `⚠️ High drop-off at ${prevStage.stage} → ${currentStage.stage} (${dropOffRate.toFixed(0)}% drop-off).`
+          );
+          if (currentStage.stage === 'Phone Screen') {
+            recommendations.push('💡 Action: Practice phone interview skills. Prepare answers to common questions and have questions ready for the interviewer.');
+          } else if (currentStage.stage === 'Technical Interview') {
+            recommendations.push('💡 Action: Focus on technical interview preparation. Practice coding problems and system design questions relevant to your field.');
+          } else if (currentStage.stage === 'Final Round') {
+            recommendations.push('💡 Action: Prepare for final round interviews by researching the company culture, preparing behavioral questions, and demonstrating enthusiasm.');
+          }
+        }
+      }
+
+      const firstStage = stages[0];
+      const lastStage = stages[stages.length - 1];
+      if (firstStage && lastStage) {
+        const appliedCount = firstStage.count || 0;
+        const offerCount = lastStage.count || 0;
+        if (appliedCount > 0 && offerCount === 0) {
+          insights.push('🎯 Focus on improving interview performance to convert applications to offers.');
+        } else if (offerCount > 0) {
+          const conversionRate = (offerCount / appliedCount) * 100;
+          if (conversionRate > 10) {
+            insights.push(`✅ Strong conversion rate: ${conversionRate.toFixed(1)}% of applications resulted in offers!`);
+          }
+        }
       }
     }
 
-    return insights;
+    // Time in status insights
+    const avgTimeInStatus = metrics.averageTimeInStatus;
+    const statusesWithTime = Object.entries(avgTimeInStatus)
+      .filter(([_, days]) => days > 0)
+      .sort(([_, a], [__, b]) => b - a);
+
+    if (statusesWithTime.length > 0) {
+      const longestEntry = statusesWithTime[0];
+      if (longestEntry) {
+        const [longestStatus, longestDays] = longestEntry;
+        if (longestDays > 30 && longestStatus !== 'Offer' && longestStatus !== 'Rejected') {
+          insights.push(
+            `⏱️ Applications spend an average of ${longestDays} days in "${longestStatus}". Consider following up if appropriate.`
+          );
+          recommendations.push('💡 Action: Set reminders to follow up on applications after 2 weeks of no response.');
+        }
+      }
+    }
+
+    // Combine insights and recommendations
+    return [...insights, ...recommendations];
   }
 }
 
