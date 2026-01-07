@@ -3,6 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: '.',
+  base: process.env.NODE_ENV === 'production' ? '/Job-Tracker-Zawadi/' : '/',
   build: {
     outDir: 'dist',
     emptyOutDir: true,

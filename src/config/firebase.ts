@@ -51,16 +51,23 @@ export function getFirebaseConfig(): FirebaseConfig {
       };
     }
     
-    // In production, use minimal fallback (user should set env vars)
-    // This is a last resort - should not happen in proper deployment
+    // In production, we need Firebase config to work
+    // If missing, show clear error message
+    console.error('❌ CRITICAL: Firebase configuration missing in production build!');
+    console.error('This usually means environment variables were not set during build.');
+    console.error('For GitHub Pages:');
+    console.error('1. Set GitHub Actions secrets with VITE_FIREBASE_* variables');
+    console.error('2. Or build locally with .env file and commit dist/ folder');
+    
+    // Return empty config - will fail gracefully with error message
     return {
-      apiKey: apiKey || '',
-      authDomain: authDomain || '',
-      databaseURL: databaseURL || '',
-      projectId: projectId || '',
-      storageBucket: storageBucket || '',
-      messagingSenderId: messagingSenderId || '',
-      appId: appId || '',
+      apiKey: '',
+      authDomain: '',
+      databaseURL: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
     };
   }
 

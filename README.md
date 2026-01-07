@@ -26,11 +26,20 @@ A modern, full-stack web application for managing job applications and interview
 - **Status Tracking** - Monitor progress in 6 stages: Applied → Phone Screen → Technical Interview → Final Round → Offer/Rejected
 - **Visa Sponsorship Flag** - Track which companies offer visa sponsorship
 
+### Analytics & Insights (v2.1.0+)
+- **Analytics Dashboard** - Comprehensive data visualization and insights
+- **Status Distribution** - Visual breakdown of applications by status
+- **Key Metrics** - Success rate, response rate, and application velocity
+- **Multiple View Modes** - Cards, Table, and Analytics views
+- **Pagination** - Efficiently handle large datasets (100+ applications)
+
 ### User Experience
 - **Clean UI/UX** - Professional, minimal design with earthy color palette
 - **Responsive Design** - Optimized for desktop (1920px), tablet (768px), and mobile (375px)
 - **Smooth Animations** - Subtle transitions and feedback for all interactions
 - **Persistent Storage** - Data saved securely in Firebase Realtime Database
+- **Multiple View Modes** - Cards, Table, and Analytics dashboard views
+- **Pagination** - Efficient handling of large datasets (100+ applications)
 
 ## 🛠️ Tech Stack
 
@@ -72,13 +81,26 @@ As a CS student applying to 80+ companies for graduate roles, I needed a central
 
 This project solved my own problem while demonstrating full-stack development skills.
 
-## 🆕 Phase 1 Enhancements (Latest Update)
+## 🆕 Recent Updates
 
-**Version 2.0.0 - TypeScript Migration & Modern Tooling**
+### Version 2.1.1 - Security Enhancements (Latest)
+- ✅ **Security Audit** - Comprehensive OWASP Top 10 review
+- ✅ **XSS Prevention** - All user input properly sanitized and escaped
+- ✅ **Input Validation** - Enhanced validation with length limits and pattern detection
+- ✅ **Rate Limiting** - Client-side throttling to prevent abuse
+- ✅ **Security Logging** - Event tracking for suspicious activities
+- ✅ **Secure Firebase Operations** - Path validation and whitelisting
+- ✅ **Content Security Policy** - CSP headers for additional protection
 
-The project has been upgraded with modern development practices while maintaining the original vanilla JavaScript philosophy:
+### Version 2.1.0 - Analytics Foundation
+- ✅ **Analytics Dashboard** - Data visualization and insights
+- ✅ **Status Distribution Chart** - Visual breakdown of application statuses
+- ✅ **Statistics Cards** - Key metrics at a glance (total apps, success rate, response rate)
+- ✅ **View Modes** - Switch between Cards, Table, and Analytics views
+- ✅ **Pagination** - Handle large datasets efficiently (100+ applications)
+- ✅ **Real-time Analytics** - Metrics update automatically as data changes
 
-### What's New
+### Version 2.0.0 - TypeScript Migration & Modern Tooling
 - ✅ **TypeScript Integration** - Full type safety and better developer experience
 - ✅ **Vite Build Tool** - Lightning-fast development and optimized production builds
 - ✅ **State Management** - Nanostores for predictable, reactive state updates
@@ -86,12 +108,6 @@ The project has been upgraded with modern development practices while maintainin
 - ✅ **Testing Setup** - Vitest configured with example tests
 - ✅ **Code Quality** - ESLint and Prettier for consistent code style
 - ✅ **Environment Variables** - Secure configuration management
-
-### Migration Notes
-- Migration from vanilla JS to TypeScript complete
-- All new code is in TypeScript (`src/main.ts`)
-- Fully backward compatible - no breaking changes
-- See `AI Markdown Assistance/` folder for detailed migration guides
 
 **Note**: Minor AI assistance was used for initial TypeScript setup and project structure organization. All architectural decisions and implementation were made by the developer.
 
@@ -175,8 +191,20 @@ Job-Tracker-Zawadi/
 │   ├── main.ts            # Application entry point
 │   ├── types/             # TypeScript type definitions
 │   ├── stores/            # State management (Nanostores)
-│   ├── utils/             # Utility functions (validators, filters, sorting, cache)
-│   └── config/             # Configuration files
+│   ├── services/          # Business logic (analytics, etc.)
+│   ├── components/        # UI components
+│   │   ├── charts/       # Chart components (Chart.js)
+│   │   └── stats/        # Stat card components
+│   ├── utils/             # Utility functions
+│   │   ├── validators/   # Input validation
+│   │   ├── security/     # Security utilities
+│   │   ├── filters/      # Filtering logic
+│   │   ├── sorting/      # Sorting logic
+│   │   └── pagination/   # Pagination utilities
+│   └── config/            # Configuration files
+├── public/                 # Static assets
+│   ├── favicon.svg       # App icon
+│   └── .htaccess         # Security headers
 ├── index.html             # Main HTML structure
 ├── style.css              # Complete styling with CSS variables
 ├── screenshots/           # Application screenshots
@@ -210,16 +238,45 @@ Job-Tracker-Zawadi/
 - Smooth transitions and animations
 - Mobile-first responsive design
 
-## 🚀 Future Improvements
+## 🚀 Roadmap
 
-If I continue building this, I would add:
-- [ ] User authentication (multi-user support)
-- [ ] Email reminders for follow-ups
-- [ ] Calendar integration for interview scheduling
-- [ ] Export data to CSV
-- [ ] Interview notes and feedback tracking
-- [ ] Company research links and notes
-- [ ] Application statistics and analytics
+### Phase 2 - Data Visualization & Analytics (In Progress)
+
+**v2.2.0 - Advanced Visualizations** (Next)
+- [ ] Application funnel chart (Applied → Offer conversion)
+- [ ] Weekly application velocity (line chart)
+- [ ] Time-in-status metrics (bar chart)
+
+**v2.3.0 - Analytics Dashboard Enhancement**
+- [ ] Interactive chart filtering
+- [ ] CSV export functionality
+- [ ] PNG export for charts
+- [ ] Enhanced insights and recommendations
+
+**v2.4.0 - Behavioral Analytics**
+- [ ] User behavior event tracking
+- [ ] Drop-off point analysis
+- [ ] Optimal application timing insights
+- [ ] Visa sponsorship impact analysis
+
+### Future Phases
+
+**Phase 3 - Motion & Animations**
+- [ ] Motion One integration
+- [ ] Smooth transitions
+- [ ] Status change animations
+
+**Phase 4 - Backend Intelligence**
+- [ ] Firebase Authentication (multi-user support)
+- [ ] Firebase Cloud Functions
+- [ ] Email reminders
+- [ ] Automated tagging
+
+**Phase 5 - Production Polish**
+- [ ] PWA support (Service Worker)
+- [ ] Offline functionality
+- [ ] Installable app
+- [ ] Performance optimizations
 
 ## 📝 License
 
@@ -240,10 +297,37 @@ This project is open source and available under the [MIT License](LICENSE).
 - The tech community for inspiration and resources
 
 ## Project Status
-Current Version: 2.0.0 (Enhanced with TypeScript & Modern Tooling)
-Active Development: Yes
-Phase: 1 Complete - Foundation Layer ✅
-Next: Phase 2 - Data Visualization & Analytics
+
+**Current Version**: 2.1.1  
+**Active Development**: Yes  
+**Current Phase**: Phase 2 - Data Visualization & Analytics (In Progress)
+
+### Completed
+- ✅ **Phase 1** - Foundation Layer (v2.0.0)
+  - TypeScript migration
+  - Modern tooling (Vite, Nanostores)
+  - Modular architecture
+- ✅ **v2.1.0** - Analytics Foundation
+  - Analytics dashboard
+  - Status distribution chart
+  - Statistics cards
+  - View modes (Cards/Table/Analytics)
+  - Pagination
+- ✅ **v2.1.1** - Security Enhancements
+  - Security audit
+  - XSS prevention
+  - Input validation
+  - Rate limiting
+
+### In Progress
+- 🚧 **v2.2.0** - Advanced Visualizations
+  - Application funnel chart
+  - Weekly velocity chart
+  - Time-in-status chart
+
+### Planned
+- 📋 **v2.3.0** - Analytics Dashboard Enhancement
+- 📋 **v2.4.0** - Behavioral Analytics
 
 
 **Built with ❤️ by Zawadi |Johannesburg, South Africa**
