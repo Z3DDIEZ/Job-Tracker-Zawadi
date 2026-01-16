@@ -421,7 +421,7 @@ function updateApplication(
 }
 
 export function deleteApplication(id: string): void {
-  // Validate application ID to prevent injection
+  // 1. Validate application ID early
   try {
     validateApplicationId(id);
   } catch (error) {
@@ -430,28 +430,30 @@ export function deleteApplication(id: string): void {
     return;
   }
 
-  // Rate limiting check
-  if (!rateLimiter.isAllowed('delete-application')) {
-    showErrorMessage('Too many requests. Please wait a moment before deleting again.');
-    return;
-  }
-
+  // 2. Ensure Firebase is ready
   if (!isFirebaseReady()) {
     showErrorMessage('Firebase not configured. Please set up your .env file.');
     return;
   }
 
-  console.log('Deleting application:', id);
-
-  // Check if user is authenticated
+  // 3. Capture auth context ONCE
   const user = authService.getCurrentUser();
   if (!user) {
     showErrorMessage('Please sign in to delete applications.');
     return;
   }
 
-  // Use secure Firebase read with user-specific path
   const userPath = getUserApplicationsPath(user.uid);
+
+  // 4. Rate limiting (user-scoped)
+  if (!rateLimiter.isAllowed(`delete-application:${user.uid}`)) {
+    showErrorMessage('Too many requests. Please wait a moment before deleting again.');
+    return;
+  }
+
+  console.log('Deleting application:', id);
+
+  // 5. Secure read before delete (ownership + existence check)
   secureFirebaseRead(database!, userPath, id)
     .then((snapshot: firebase.database.DataSnapshot) => {
       const app = snapshot.val() as JobApplication | null;
@@ -467,61 +469,71 @@ export function deleteApplication(id: string): void {
           `This action cannot be undone.`
       );
 
-      if (confirmed) {
-        // Find and animate card deletion
-        const card = document.querySelector(`[data-app-id="${id}"], [data-id="${id}"]`) as HTMLElement;
-        
-        // Check if user is authenticated
-        const user = authService.getCurrentUser();
-        if (!user) {
-          showErrorMessage('Please sign in to delete applications.');
-          return;
-        }
-
-        // Use secure Firebase delete with user-specific path
-        const userPath = getUserApplicationsPath(user.uid);
-        secureFirebaseDelete(database!, userPath, id)
-          .then(() => {
-            console.log('✅ Application deleted successfully');
-            eventTrackingService.track('application_deleted', {
-              applicationId: id,
-              company: app.company,
-            });
-            
-            // Animate deletion
-            if (card) {
-              animationService.animateCardDeletion(card, () => {
-                showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
-                CacheManager.invalidate();
-              });
-            } else {
-              showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
-              CacheManager.invalidate();
-            }
-          })
-          .catch((error: unknown) => {
-            console.error('❌ Error deleting application:', error);
-            
-            securityLogger.log({
-              type: 'unauthorized_access',
-              message: 'Failed to delete application',
-              details: { operation: 'delete-application', id, error: String(error).substring(0, 100) },
-            });
-            
-            showErrorMessage('Failed to delete application. Please try again.');
-          });
+      if (!confirmed) {
+        return;
       }
+
+      // 6. Locate card once (safe due to strict ID validation)
+      const card = document.querySelector(
+        `[data-app-id="${id}"], [data-id="${id}"]`
+      ) as HTMLElement | null;
+
+      // 7. Secure delete using SAME auth context + path
+      return secureFirebaseDelete(database!, userPath, id)
+        .then(() => {
+          console.log('✅ Application deleted successfully');
+
+          eventTrackingService.track('application_deleted', {
+            applicationId: id,
+            company: app.company,
+          });
+
+          const onComplete = () => {
+            showSuccessMessage(
+              `Application for ${escapeHtml(app.company || 'Unknown')} deleted`
+            );
+            CacheManager.invalidate();
+          };
+
+          // 8. Animate if possible
+          if (card) {
+            animationService.animateCardDeletion(card, onComplete);
+          } else {
+            onComplete();
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('❌ Error deleting application:', error);
+
+          securityLogger.log({
+            type: 'unauthorized_access',
+            message: 'Failed to delete application',
+            details: {
+              operation: 'delete-application',
+              userId: user.uid,
+              applicationId: id,
+              error: String(error).substring(0, 100),
+            },
+          });
+
+          showErrorMessage('Failed to delete application. Please try again.');
+        });
     })
     .catch((error: unknown) => {
       console.error('Error loading application:', error);
-      
+
       securityLogger.log({
         type: 'unauthorized_access',
         message: 'Failed to load application for deletion',
-        details: { operation: 'delete-application', id, error: String(error).substring(0, 100) },
+        details: {
+          operation: 'delete-application',
+          userId: user.uid,
+          applicationId: id,
+          error: String(error).substring(0, 100),
+        },
       });
-      
-      showErrorMessage('Error loading application data');
+
+      showErrorMessage('Error loading application data.');
     });
 }
 
