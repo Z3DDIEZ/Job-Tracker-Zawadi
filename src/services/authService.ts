@@ -49,7 +49,7 @@ class AuthService {
   /**
    * Map Firebase User to our User type
    */
-  private mapFirebaseUser(firebaseUser: firebase.User): User {
+  private mapFirebaseUser(firebaseUser: firebase.auth.User): User {
     return {
       uid: firebaseUser.uid,
       email: firebaseUser.email,
@@ -66,19 +66,30 @@ class AuthService {
     const errorMessages: Record<string, string> = {
       'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
       'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/operation-not-allowed': 'Email/password accounts are not enabled.',
+      'auth/operation-not-allowed': 'Email/password authentication is not enabled. Please contact support.',
       'auth/weak-password': 'Password should be at least 6 characters.',
       'auth/user-disabled': 'This account has been disabled.',
       'auth/user-not-found': 'No account found with this email address.',
       'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-      'auth/network-request-failed': 'Network error. Please check your connection.',
+      'auth/invalid-login-credentials': 'Invalid email or password. Please check your credentials and try again.',
       'auth/invalid-credential': 'Invalid email or password.',
+      'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+      'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
+      'auth/internal-error': 'An internal error occurred. Please try again later.',
+      'auth/invalid-api-key': 'Invalid API key. Please check your Firebase configuration.',
+      'auth/app-deleted': 'Firebase app has been deleted. Please contact support.',
+      'auth/app-not-authorized': 'Firebase app is not authorized. Please check your configuration.',
+      'auth/configuration-not-found': 'Firebase configuration not found. Please check your setup.',
     };
+
+    // Log the error code for debugging
+    if (!errorMessages[error.code]) {
+      console.error('Unhandled auth error code:', error.code, error);
+    }
 
     return {
       code: error.code,
-      message: errorMessages[error.code] || error.message || 'An authentication error occurred.',
+      message: errorMessages[error.code] || error.message || 'An authentication error occurred. Please try again.',
     };
   }
 
@@ -105,13 +116,36 @@ class AuthService {
         throw new Error('Failed to create user account.');
       }
 
-      // Send email verification
-      await userCredential.user.sendEmailVerification();
+      // Send email verification (don't fail signup if this fails)
+      try {
+        await userCredential.user.sendEmailVerification();
+      } catch (verificationError) {
+        // Log but don't throw - user is still created successfully
+        console.warn('Failed to send verification email:', verificationError);
+      }
 
       return this.mapFirebaseUser(userCredential.user);
     } catch (error) {
-      const authError = error as firebase.auth.Error;
-      throw this.mapAuthError(authError);
+      // Log the actual error for debugging
+      console.error('Sign up error:', error);
+      
+      // Handle different error types
+      if (error && typeof error === 'object' && 'code' in error) {
+        const authError = error as firebase.auth.Error;
+        throw this.mapAuthError(authError);
+      } else if (error instanceof Error) {
+        // Handle regular Error objects
+        throw {
+          code: 'auth/unknown-error',
+          message: error.message || 'An error occurred during sign up. Please try again.',
+        };
+      } else {
+        // Handle unknown error types
+        throw {
+          code: 'auth/unknown-error',
+          message: 'An unexpected error occurred. Please check your connection and try again.',
+        };
+      }
     }
   }
 

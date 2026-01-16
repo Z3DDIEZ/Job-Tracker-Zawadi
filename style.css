@@ -1876,6 +1876,7 @@ footer a:hover {
 /* User Profile */
 .user-profile {
     position: relative;
+    z-index: 10001;
 }
 
 .user-profile-trigger {
@@ -1936,8 +1937,10 @@ footer a:hover {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     min-width: 280px;
-    z-index: 1000;
-    overflow: hidden;
+    z-index: 10000;
+    overflow: visible;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .user-profile-header {

@@ -53,7 +53,7 @@ import { createLoginForm } from './components/auth/LoginForm';
 import { createSignUpForm } from './components/auth/SignUpForm';
 import { createUserProfile } from './components/auth/UserProfile';
 import type { Chart } from 'chart.js';
-import type { JobApplication, ApplicationStatus, SortOption, User } from './types';
+import type { JobApplication, ApplicationStatus, SortOption } from './types';
 
 // Firebase initialization
 let database: firebase.database.Database | undefined;
@@ -76,7 +76,14 @@ function initializeFirebase(): boolean {
     
     const app = firebase.initializeApp(config);
     database = app.database();
-    auth = app.auth();
+    
+    // In Firebase compat mode, auth is accessed via firebase.auth(), not app.auth()
+    // Type assertion needed because TypeScript doesn't fully understand the compat API
+    auth = (firebase as any).auth() as firebase.auth.Auth;
+    
+    if (!auth) {
+      throw new Error('Firebase Auth failed to initialize');
+    }
     
     // Initialize auth service
     authService.initialize(auth);
@@ -738,7 +745,7 @@ function loadApplications(): void {
   const user = authService.getCurrentUser();
   if (!user) {
     console.log('⚠️ Cannot load applications: User not authenticated');
-    hideLoadingState();
+    showLoadingState();
     return;
   }
 

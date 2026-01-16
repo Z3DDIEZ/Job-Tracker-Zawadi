@@ -16,7 +16,6 @@ declare namespace firebase {
 
   interface App {
     database(): database.Database;
-    auth(): auth.Auth;
   }
 
   namespace database {
@@ -75,4 +74,10 @@ declare namespace firebase {
   }
 }
 
-declare const firebase: typeof firebase;
+// Extend the firebase namespace to include auth() function
+interface FirebaseNamespace {
+  initializeApp: typeof firebase.initializeApp;
+  auth: () => firebase.auth.Auth;
+}
+
+declare const firebase: FirebaseNamespace & typeof firebase;
