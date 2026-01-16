@@ -131,12 +131,15 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
  */
 function getInitials(email: string): string {
   if (!email) return 'U';
-  
-  const parts = email.split('@')[0].split(/[._-]/);
-  if (parts.length >= 2) {
+
+  const emailNamePart = email.split('@')[0] ?? '';
+  if (!emailNamePart) return 'U';
+
+  const parts = emailNamePart.split(/[._-]/);
+  if (parts.length >= 2 && parts[0]?.[0] && parts[1]?.[0]) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  return email[0].toUpperCase();
+  return emailNamePart[0]?.toUpperCase() || 'U';
 }
 
 /**
