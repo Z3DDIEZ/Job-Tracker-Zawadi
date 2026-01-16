@@ -16,6 +16,7 @@ export function secureFirebaseRef(
   id?: string
 ): firebase.database.Reference {
   // Whitelist allowed paths
+  // Allow: 'applications' or 'applications/{userId}'
   const allowedPaths = ['applications'];
   const pathParts = path.split('/').filter((p) => p.length > 0);
 
@@ -28,6 +29,21 @@ export function secureFirebaseRef(
       details: { path, allowedPaths },
     });
     throw error;
+  }
+
+  // Validate user ID if present (second path part)
+  // User IDs should be valid Firebase UIDs (alphanumeric, max 128 chars)
+  if (pathParts.length >= 2) {
+    const userId = pathParts[1];
+    if (!userId || userId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(userId)) {
+      const error = new Error(`Invalid user ID in path: ${path}`);
+      securityLogger.log({
+        type: 'injection_attempt',
+        message: 'Invalid user ID in Firebase path',
+        details: { path, userId },
+      });
+      throw error;
+    }
   }
 
   // If ID is provided, validate it

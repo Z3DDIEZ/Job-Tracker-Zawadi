@@ -89,3 +89,22 @@ export interface AnalyticsMetrics {
     withoutVisa: { total: number; offers: number; successRate: number; responseRate: number };
   };
 }
+
+// Authentication Types
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName?: string | null;
+  emailVerified: boolean;
+}
+
+export interface AuthError {
+  code: string;
+  message: string;
+}
+
+export type AuthState = 'loading' | 'authenticated' | 'unauthenticated';
+
+export interface AuthStateChangeCallback {
+  (user: User | null): void;
+}

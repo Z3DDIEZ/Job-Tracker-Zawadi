@@ -16,6 +16,7 @@ declare namespace firebase {
 
   interface App {
     database(): database.Database;
+    auth(): auth.Auth;
   }
 
   namespace database {
@@ -37,6 +38,39 @@ declare namespace firebase {
     interface DataSnapshot {
       val(): unknown;
       key: string | null;
+    }
+  }
+
+  namespace auth {
+    interface Auth {
+      currentUser: User | null;
+      onAuthStateChanged(
+        nextOrObserver: (user: User | null) => void,
+        error?: (error: Error) => void,
+        completed?: () => void
+      ): () => void;
+      createUserWithEmailAndPassword(email: string, password: string): Promise<UserCredential>;
+      signInWithEmailAndPassword(email: string, password: string): Promise<UserCredential>;
+      signOut(): Promise<void>;
+      sendPasswordResetEmail(email: string): Promise<void>;
+    }
+
+    interface User {
+      uid: string;
+      email: string | null;
+      displayName: string | null;
+      emailVerified: boolean;
+      sendEmailVerification(): Promise<void>;
+      updatePassword(newPassword: string): Promise<void>;
+    }
+
+    interface UserCredential {
+      user: User;
+    }
+
+    interface Error {
+      code: string;
+      message: string;
     }
   }
 }

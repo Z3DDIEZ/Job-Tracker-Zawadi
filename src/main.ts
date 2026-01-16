@@ -48,11 +48,16 @@ import {
 import { createApplicationCardSafe } from './utils/domHelpers';
 import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
 import { animationService } from './services/animationService';
+import { authService } from './services/authService';
+import { createLoginForm } from './components/auth/LoginForm';
+import { createSignUpForm } from './components/auth/SignUpForm';
+import { createUserProfile } from './components/auth/UserProfile';
 import type { Chart } from 'chart.js';
-import type { JobApplication, ApplicationStatus, SortOption } from './types';
+import type { JobApplication, ApplicationStatus, SortOption, User } from './types';
 
 // Firebase initialization
 let database: firebase.database.Database | undefined;
+let auth: firebase.auth.Auth | undefined;
 
 // Initialize Firebase
 function initializeFirebase(): boolean {
@@ -65,24 +70,40 @@ function initializeFirebase(): boolean {
     if (hasMissingConfig) {
       showFirebaseConfigError();
       database = undefined;
+      auth = undefined;
       return false;
     }
     
     const app = firebase.initializeApp(config);
     database = app.database();
+    auth = app.auth();
+    
+    // Initialize auth service
+    authService.initialize(auth);
+    
     console.log('🔥 Firebase initialized');
     return true;
   } catch (error) {
     console.error('❌ Firebase initialization failed:', error);
     showFirebaseConfigError();
     database = undefined;
+    auth = undefined;
     return false;
   }
 }
 
 // Check if Firebase is ready
 function isFirebaseReady(): boolean {
-  return database !== undefined;
+  return database !== undefined && auth !== undefined;
+}
+
+// Get user-specific database path
+function getUserApplicationsPath(userId?: string): string {
+  if (userId) {
+    return `applications/${userId}`;
+  }
+  // Fallback for anonymous/legacy data (will be migrated)
+  return 'applications';
 }
 
 // Show user-friendly Firebase config error
@@ -255,8 +276,19 @@ function addApplication(
   submitBtn.textContent = 'Saving...';
   animationService.animateButtonLoading(submitBtn);
 
-  // Use secure Firebase reference (no ID needed for push)
-  const newApplicationRef = secureFirebaseRef(database!, 'applications').push();
+  // Check if user is authenticated
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to add applications.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Application';
+    animationService.stopButtonLoading(submitBtn);
+    return;
+  }
+
+  // Use secure Firebase reference with user-specific path
+  const userPath = getUserApplicationsPath(user.uid);
+  const newApplicationRef = secureFirebaseRef(database!, userPath).push();
 
   const applicationData: JobApplication = {
     company,
@@ -321,8 +353,16 @@ function updateApplication(
     return;
   }
 
-  // Use secure Firebase wrapper
-  secureFirebaseUpdate(database!, 'applications', id, updatedData)
+  // Check if user is authenticated
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to update applications.');
+    return;
+  }
+
+  // Use secure Firebase wrapper with user-specific path
+  const userPath = getUserApplicationsPath(user.uid);
+  secureFirebaseUpdate(database!, userPath, id, updatedData)
     .then(() => {
       console.log('✅ Application updated successfully');
       const oldStatus = originalApplicationData?.status;
@@ -403,8 +443,16 @@ export function deleteApplication(id: string): void {
 
   console.log('Deleting application:', id);
 
-  // Use secure Firebase read
-  secureFirebaseRead(database!, 'applications', id)
+  // Check if user is authenticated
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to delete applications.');
+    return;
+  }
+
+  // Use secure Firebase read with user-specific path
+  const userPath = getUserApplicationsPath(user.uid);
+  secureFirebaseRead(database!, userPath, id)
     .then((snapshot: firebase.database.DataSnapshot) => {
       const app = snapshot.val() as JobApplication | null;
 
@@ -423,8 +471,16 @@ export function deleteApplication(id: string): void {
         // Find and animate card deletion
         const card = document.querySelector(`[data-app-id="${id}"], [data-id="${id}"]`) as HTMLElement;
         
-        // Use secure Firebase delete
-        secureFirebaseDelete(database!, 'applications', id)
+        // Check if user is authenticated
+        const user = authService.getCurrentUser();
+        if (!user) {
+          showErrorMessage('Please sign in to delete applications.');
+          return;
+        }
+
+        // Use secure Firebase delete with user-specific path
+        const userPath = getUserApplicationsPath(user.uid);
+        secureFirebaseDelete(database!, userPath, id)
           .then(() => {
             console.log('✅ Application deleted successfully');
             eventTrackingService.track('application_deleted', {
@@ -666,8 +722,17 @@ function loadApplications(): void {
   // Show loading state
   showLoadingState();
 
-  // Listen for data changes in Firebase (path is whitelisted, no user input)
-  const applicationsRef = secureFirebaseRef(database!, 'applications');
+  // Check if user is authenticated
+  const user = authService.getCurrentUser();
+  if (!user) {
+    console.log('⚠️ Cannot load applications: User not authenticated');
+    hideLoadingState();
+    return;
+  }
+
+  // Listen for data changes in Firebase with user-specific path
+  const userPath = getUserApplicationsPath(user.uid);
+  const applicationsRef = secureFirebaseRef(database!, userPath);
   applicationsRef.on('value', (snapshot: firebase.database.DataSnapshot) => {
     const applicationsData = snapshot.val() as Record<string, Omit<JobApplication, 'id'>> | null;
 
@@ -1507,17 +1572,136 @@ export function handleSortChange(value: string): void {
 }
 
 // ========================================
+// AUTHENTICATION UI
+// ========================================
+
+let currentAuthView: 'login' | 'signup' = 'login';
+let authContainer: HTMLElement | null = null;
+
+/**
+ * Render authentication UI
+ */
+function renderAuthUI(): void {
+  const header = document.querySelector('header');
+  if (!header) return;
+
+  // Create auth container
+  authContainer = document.createElement('div');
+  authContainer.id = 'auth-container';
+  authContainer.className = 'auth-container';
+  
+  // Add to header
+  header.appendChild(authContainer);
+  
+  // Initial render
+  updateAuthUI();
+}
+
+/**
+ * Update auth UI based on current state
+ */
+function updateAuthUI(): void {
+  if (!authContainer) return;
+
+  const user = authService.getCurrentUser();
+  
+  if (user) {
+    // User is authenticated - show profile
+    authContainer.innerHTML = '';
+    const profile = createUserProfile(user, {
+      onSignOut: () => {
+        handleSignOut();
+      },
+    });
+    authContainer.appendChild(profile);
+    animationService.animateCardEntrance([profile]);
+  } else {
+    // User is not authenticated - show login/signup
+    authContainer.innerHTML = '';
+    const form = currentAuthView === 'login' 
+      ? createLoginForm({
+          onSuccess: () => {
+            // Auth state change will update UI automatically
+          },
+          onSwitchToSignUp: () => {
+            currentAuthView = 'signup';
+            updateAuthUI();
+          },
+        })
+      : createSignUpForm({
+          onSuccess: () => {
+            // Auth state change will update UI automatically
+          },
+          onSwitchToLogin: () => {
+            currentAuthView = 'login';
+            updateAuthUI();
+          },
+        });
+    
+    authContainer.appendChild(form);
+    animationService.animateCardEntrance([form]);
+  }
+}
+
+/**
+ * Handle sign out
+ */
+function handleSignOut(): void {
+  // Clear applications from store
+  setApplications([]);
+  setFilteredApplications([]);
+  
+  // Clear UI
+  if (applicationsContainer) {
+    applicationsContainer.innerHTML = '';
+  }
+  
+  // Reload will happen via auth state change
+}
+
+/**
+ * Initialize authentication
+ */
+function initializeAuth(): void {
+  // Listen for auth state changes
+  authService.onAuthStateChanged((user) => {
+    if (user) {
+      console.log('✅ User authenticated:', user.email);
+      // User is signed in - load their applications
+      loadApplications();
+    } else {
+      console.log('👤 User not authenticated');
+      // User is signed out - clear applications
+      setApplications([]);
+      setFilteredApplications([]);
+      if (applicationsContainer) {
+        applicationsContainer.innerHTML = '<p class="empty-state">Please sign in to view your applications.</p>';
+      }
+    }
+    
+    // Update auth UI
+    updateAuthUI();
+  });
+}
+
+// ========================================
 // INITIALIZE APP
 // ========================================
 
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 App initialized (Enhanced v2.4.0 with TypeScript)');
+  console.log('🚀 App initialized (Enhanced v4.0.0 with Authentication)');
   
   // Initialize Firebase and only load applications if successful
   const firebaseInitialized = initializeFirebase();
   
   if (firebaseInitialized) {
-    loadApplications();
+    // Render auth UI
+    renderAuthUI();
+    
+    // Initialize auth state listener
+    initializeAuth();
+    
+    // Note: loadApplications() will be called automatically when user signs in
   }
   
   // Subscribe to store changes
