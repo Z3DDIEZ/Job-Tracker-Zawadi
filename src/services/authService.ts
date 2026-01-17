@@ -80,6 +80,10 @@ class AuthService {
       'auth/app-deleted': 'Firebase app has been deleted. Please contact support.',
       'auth/app-not-authorized': 'Firebase app is not authorized. Please check your configuration.',
       'auth/configuration-not-found': 'Firebase configuration not found. Please check your setup.',
+      'auth/no-current-user': 'No user is currently signed in.',
+      'auth/user-already-verified': 'Your email is already verified.',
+      'auth/user-token-expired': 'Your session has expired. Please sign in again.',
+      'auth/invalid-user-token': 'Invalid session. Please sign in again.',
     };
 
     // Log the error code for debugging
@@ -239,16 +243,74 @@ class AuthService {
   async resendEmailVerification(): Promise<void> {
     this.ensureInitialized();
 
-    const user = this.auth!.currentUser;
-    if (!user) {
-      throw new Error('No user is currently signed in.');
+    const firebaseUser = this.auth!.currentUser;
+    if (!firebaseUser) {
+      throw { code: 'auth/no-current-user', message: 'No user is currently signed in.' };
+    }
+
+    // Check if user is already verified
+    if (firebaseUser.emailVerified) {
+      throw { code: 'auth/user-already-verified', message: 'Your email is already verified.' };
     }
 
     try {
-      await user.sendEmailVerification();
+      // Reload user data to get latest verification status
+      await (firebaseUser as any).reload();
+
+      // Get fresh user reference after reload
+      const reloadedUser = this.auth!.currentUser;
+
+      if (!reloadedUser) {
+        throw { code: 'auth/user-not-found', message: 'User session expired. Please sign in again.' };
+      }
+
+      if (reloadedUser.emailVerified) {
+        throw { code: 'auth/user-already-verified', message: 'Your email is already verified.' };
+      }
+
+      // Send verification email
+      await (reloadedUser as any).sendEmailVerification();
+
+      console.log('✅ Email verification sent successfully to:', reloadedUser.email);
+
     } catch (error) {
-      const authError = error as firebase.auth.Error;
-      throw this.mapAuthError(authError);
+      console.error('❌ Email verification error:', error);
+
+      // Handle specific Firebase errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        const authError = error as firebase.auth.Error;
+
+        // Map additional email verification specific errors
+        const verificationErrorMessages: Record<string, string> = {
+          'auth/too-many-requests': 'Too many verification emails sent recently. Please wait a few minutes before trying again.',
+          'auth/user-token-expired': 'Your session has expired. Please sign in again.',
+          'auth/user-disabled': 'Your account has been disabled. Please contact support.',
+          'auth/invalid-user-token': 'Invalid session. Please sign in again.',
+          'auth/operation-not-allowed': 'Email verification is not enabled for this project.',
+        };
+
+        if (verificationErrorMessages[authError.code]) {
+          throw {
+            code: authError.code,
+            message: verificationErrorMessages[authError.code]
+          };
+        }
+
+        throw this.mapAuthError(authError);
+      }
+
+      // Handle network or other errors
+      if (error instanceof Error) {
+        throw {
+          code: 'auth/network-error',
+          message: 'Network error. Please check your connection and try again.'
+        };
+      }
+
+      throw {
+        code: 'auth/unknown-error',
+        message: 'Failed to send verification email. Please try again later.'
+      };
     }
   }
 

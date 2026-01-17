@@ -7,6 +7,33 @@ import { authService } from '@/services/authService';
 import { animationService } from '@/services/animationService';
 import type { User } from '@/types';
 
+/**
+ * Refresh user profile display after verification email is sent
+ */
+function refreshUserProfile(user: User): void {
+  // Find the user profile menu and update the verification status
+  const userProfileMenu = document.getElementById('user-profile-menu');
+  if (!userProfileMenu) return;
+
+  // Find the email verification badge
+  const verificationBadge = userProfileMenu.querySelector('.email-verified-badge, .email-unverified-badge');
+  if (verificationBadge) {
+    if (user.emailVerified) {
+      verificationBadge.className = 'email-verified-badge';
+      verificationBadge.textContent = '✓ Verified';
+    } else {
+      verificationBadge.className = 'email-unverified-badge';
+      verificationBadge.textContent = '⚠ Not verified';
+    }
+  }
+
+  // Hide/show resend verification button
+  const resendBtn = userProfileMenu.querySelector('#resend-verification-btn') as HTMLElement;
+  if (resendBtn) {
+    resendBtn.style.display = user.emailVerified ? 'none' : 'flex';
+  }
+}
+
 export interface UserProfileOptions {
   onSignOut?: () => void;
 }
@@ -39,10 +66,12 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
       <div class="user-profile-actions">
         ${!user.emailVerified ? `
           <button class="menu-item" id="resend-verification-btn">
+            <span class="menu-icon">📧</span>
             Resend verification email
           </button>
         ` : ''}
         <button class="menu-item" id="sign-out-btn">
+          <span class="menu-icon">🚪</span>
           Sign Out
         </button>
       </div>
@@ -87,15 +116,52 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
   // Resend verification email
   if (resendVerificationBtn) {
     resendVerificationBtn.addEventListener('click', async () => {
+      const originalText = resendVerificationBtn.innerHTML;
+      const originalCursor = resendVerificationBtn.style.cursor;
+
+      // Show loading state
+      resendVerificationBtn.innerHTML = '<span class="menu-icon">⏳</span>Sending...';
+      resendVerificationBtn.style.cursor = 'not-allowed';
+      resendVerificationBtn.disabled = true;
+
       try {
         await authService.resendEmailVerification();
+
+        // Success feedback
+        resendVerificationBtn.innerHTML = '<span class="menu-icon">✅</span>Sent!';
         animationService.animateSuccessMessage(
-          createSuccessMessage('Verification email sent! Check your inbox.')
+          createSuccessMessage('Verification email sent! Check your inbox and spam folder.')
         );
-      } catch (error) {
+
+        // Refresh user profile to get latest verification status
+        setTimeout(async () => {
+          try {
+            // Force reload of user data from Firebase
+            await authService.getCurrentUser(); // This will trigger auth state change
+          } catch (error) {
+            console.warn('Failed to refresh user data:', error);
+          }
+        }, 1000);
+
+        // Reset button after 3 seconds
+        setTimeout(() => {
+          resendVerificationBtn.innerHTML = originalText;
+          resendVerificationBtn.style.cursor = originalCursor;
+          resendVerificationBtn.disabled = false;
+        }, 3000);
+
+      } catch (error: any) {
         console.error('Resend verification error:', error);
+
+        // Reset button immediately on error
+        resendVerificationBtn.innerHTML = originalText;
+        resendVerificationBtn.style.cursor = originalCursor;
+        resendVerificationBtn.disabled = false;
+
+        // Show specific error message
+        const errorMessage = error?.message || 'Failed to send verification email. Please try again.';
         animationService.animateMessage(
-          createErrorMessage('Failed to send verification email. Please try again.'),
+          createErrorMessage(errorMessage),
           'error'
         );
       }
