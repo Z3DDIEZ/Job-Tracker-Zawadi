@@ -113,14 +113,25 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
   function openMenu(): void {
     isMenuOpen = true;
     menu.style.display = 'block';
-    animationService.slideInRight(menu);
+    trigger.classList.add('menu-open');
+
+    // Use CSS class for smooth animation
+    setTimeout(() => {
+      menu.classList.add('open');
+    }, 10);
   }
 
   function closeMenu(): void {
     isMenuOpen = false;
-    animationService.slideOutLeft(menu, () => {
+    trigger.classList.remove('menu-open');
+
+    // Remove open class to trigger CSS animation
+    menu.classList.remove('open');
+
+    // Hide after animation completes
+    setTimeout(() => {
       menu.style.display = 'none';
-    });
+    }, 300);
   }
 
   return profile;

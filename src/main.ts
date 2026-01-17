@@ -179,6 +179,13 @@ let originalApplicationData: JobApplication | null = null;
 form?.addEventListener('submit', function (event) {
   event.preventDefault();
 
+  // Check if user is authenticated first
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to save your applications. You can view the form, but saving requires authentication.');
+    return;
+  }
+
   const company = (document.getElementById('company') as HTMLInputElement).value.trim();
   const role = (document.getElementById('role') as HTMLInputElement).value.trim();
   const dateApplied = (document.getElementById('date') as HTMLInputElement).value;
@@ -208,7 +215,7 @@ form?.addEventListener('submit', function (event) {
   if (editId) {
     // Validate that something actually changed
     if (originalApplicationData) {
-      const hasChanges = 
+      const hasChanges =
         originalApplicationData.company !== sanitizedCompany ||
         originalApplicationData.role !== sanitizedRole ||
         originalApplicationData.dateApplied !== dateApplied ||
@@ -549,6 +556,13 @@ export function deleteApplication(id: string): void {
 // ========================================
 
 export function editApplication(id: string): void {
+  // Check authentication first
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to edit applications.');
+    return;
+  }
+
   if (!database) {
     showErrorMessage('Firebase not configured. Please set up your .env file.');
     return;
@@ -565,8 +579,9 @@ export function editApplication(id: string): void {
 
   console.log('Editing application:', id);
 
-  // Use secure Firebase read
-  secureFirebaseRead(database!, 'applications', id)
+  // Use secure Firebase read with user-specific path
+  const userPath = getUserApplicationsPath(user.uid);
+  secureFirebaseRead(database!, userPath, id)
     .then((snapshot: firebase.database.DataSnapshot) => {
       const app = snapshot.val() as JobApplication | null;
 
@@ -584,7 +599,7 @@ export function editApplication(id: string): void {
       // Populate form fields
       (document.getElementById('company') as HTMLInputElement).value = app.company || '';
       (document.getElementById('role') as HTMLInputElement).value = app.role || '';
-      (document.getElementById('date') as HTMLInputElement).value = app.dateApplied || '';
+      (document.getElementById('status') as HTMLInputElement).value = app.dateApplied || '';
       (document.getElementById('status') as HTMLSelectElement).value = app.status || '';
       (document.getElementById('visa') as HTMLInputElement).checked = app.visaSponsorship || false;
 
@@ -1663,18 +1678,50 @@ function updateAuthUI(): void {
 }
 
 /**
+ * Update form state based on authentication status
+ */
+function updateFormAuthState(user: any): void {
+  const form = document.getElementById('application-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+
+  if (!form || !submitBtn) return;
+
+  if (user) {
+    // User is authenticated - enable form
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Application';
+    submitBtn.style.opacity = '1';
+    form.style.opacity = '1';
+    form.style.pointerEvents = 'auto';
+
+    // Remove any auth-related styling
+    form.classList.remove('form-disabled');
+  } else {
+    // User is not authenticated - disable form submission
+    submitBtn.disabled = false; // Allow clicking to show error
+    submitBtn.textContent = 'Sign In Required';
+    submitBtn.style.opacity = '0.7';
+    form.style.opacity = '0.8';
+    form.style.pointerEvents = 'auto'; // Allow interaction but show error on submit
+
+    // Add visual indication
+    form.classList.add('form-disabled');
+  }
+}
+
+/**
  * Handle sign out
  */
 function handleSignOut(): void {
   // Clear applications from store
   setApplications([]);
   setFilteredApplications([]);
-  
+
   // Clear UI
   if (applicationsContainer) {
     applicationsContainer.innerHTML = '';
   }
-  
+
   // Reload will happen via auth state change
 }
 
@@ -1690,16 +1737,20 @@ function initializeAuth(): void {
       loadApplications();
     } else {
       console.log('👤 User not authenticated');
-      // User is signed out - clear applications
+      // User is signed out - clear applications but show empty state
       setApplications([]);
       setFilteredApplications([]);
       if (applicationsContainer) {
-        applicationsContainer.innerHTML = '<p class="empty-state">Please sign in to view your applications.</p>';
+        applicationsContainer.innerHTML = '<p class="empty-state">Sign in to view and manage your applications.</p>';
       }
+      updateCounter(0, 0);
     }
-    
+
     // Update auth UI
     updateAuthUI();
+
+    // Update form state based on authentication
+    updateFormAuthState(user);
   });
 }
 

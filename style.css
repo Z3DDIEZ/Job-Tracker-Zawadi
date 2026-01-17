@@ -110,7 +110,7 @@ header {
     color: var(--white);
     padding: var(--space-12) var(--space-6);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1872,165 +1872,9 @@ footer a:hover {
 .link-button:hover {
     color: var(--accent-dark);
 }
-/** User Profile Dropdown Menu Styles */
+/** User Profile Dropdown Menu Styles - Consolidated */
 
-/* Ensure the dropdown is positioned below the trigger with a drop-down effect */
-.user-profile-menu {
-    display: none; /* will be shown dynamically */
-    position: absolute;
-    top: calc(100% + 8px); /* drop down below the trigger with gap */
-    right: 0;
-    min-width: 220px;
-    background: var(--white);
-    border: 1px solid var(--slate-200);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 1.5px 4px rgba(15, 23, 42, 0.03);
-    padding: var(--space-4) 0 var(--space-2) 0;
-    z-index: 10010;
-    animation: dropdown-fade-in 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes dropdown-fade-in {
-    0% {
-        opacity: 0;
-        transform: translateY(-8px) scale(0.98);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Add shadow and pointer arrow above menu for visual cue */
-.user-profile-menu::before {
-    content: "";
-    display: block;
-    position: absolute;
-    top: -9px;
-    right: 18px;
-    width: 18px;
-    height: 18px;
-    background: var(--white);
-    border-left: 1px solid var(--slate-200);
-    border-top: 1px solid var(--slate-200);
-    transform: rotate(45deg);
-    z-index: 1;
-    box-shadow: -2px -2px 6px rgba(15, 23, 42, 0.05);
-}
-
-/* Profile header styling */
-.user-profile-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 0 var(--space-4) var(--space-2) var(--space-4);
-}
-
-.user-avatar-large {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-full);
-    background: var(--accent);
-    color: var(--white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: var(--text-lg);
-    margin-right: var(--space-2);
-    flex-shrink: 0;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.user-email-display {
-    color: var(--slate-800);
-    font-size: var(--text-base);
-    font-weight: 600;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.email-verified-badge,
-.email-unverified-badge {
-    font-size: var(--text-xs);
-    font-weight: 500;
-    margin-top: 2px;
-    display: inline-block;
-    border-radius: var(--radius-sm);
-    padding: 1px 6px;
-}
-
-.email-verified-badge {
-    color: var(--success);
-    background: var(--success-bg);
-}
-
-.email-unverified-badge {
-    color: var(--danger);
-    background: var(--danger-bg);
-}
-
-/* Actions: vertical list with spacing */
-.user-profile-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: var(--space-2) var(--space-4) var(--space-2) var(--space-4);
-}
-
-.menu-item {
-    display: block;
-    width: 100%;
-    border: none;
-    background: none;
-    color: var(--slate-700);
-    font-size: var(--text-base);
-    text-align: left;
-    padding: var(--space-2) 0;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: background 0.13s, color 0.13s;
-}
-
-.menu-item:hover,
-.menu-item:focus {
-    background: var(--slate-100);
-    color: var(--accent);
-    outline: none;
-}
-
-/* Menu should not go off the screen on mobile/small viewports */
-@media (max-width: 500px) {
-    .user-profile-menu {
-        right: 8px;
-        left: 8px;
-        min-width: 0;
-        width: auto;
-        max-width: 95vw;
-    }
-    .user-profile-menu::before {
-        right: 26px;
-    }
-}
-
-/* Animate chevron when menu is open (optional, requires JS to add a class) */
-.user-profile-trigger.menu-open .chevron-icon {
-    transform: rotate(180deg);
-}
-
-/* User Profile */
-.user-profile {
-    position: relative;
-    z-index: 10001;
-}
-
+/* Profile trigger button */
 .user-profile-trigger {
     display: flex;
     align-items: center;
@@ -2041,6 +1885,7 @@ footer a:hover {
     padding: var(--space-2) var(--space-4);
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .user-profile-trigger:hover {
@@ -2079,22 +1924,59 @@ footer a:hover {
     transform: rotate(180deg);
 }
 
-/* User Profile Menu */
+/* User Profile container */
+.user-profile {
+    position: relative;
+    z-index: 10001;
+}
+
+/* Dropdown menu - ensure it doesn't wrap off screen */
 .user-profile-menu {
+    display: none; /* will be shown dynamically */
     position: absolute;
-    top: calc(100% + var(--space-2));
+    top: calc(100% + var(--space-2)); /* drop down below the trigger with gap */
     right: 0;
-    background: var(--white);
-    border: 1px solid var(--slate-300);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
     min-width: 280px;
-    z-index: 10000;
+    max-width: 90vw; /* Prevent overflow on small screens */
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 1.5px 4px rgba(15, 23, 42, 0.03);
+    padding: var(--space-4) 0;
+    z-index: 10010;
     overflow: visible;
     max-height: 90vh;
     overflow-y: auto;
+    opacity: 0;
+    transform: translateX(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* When menu is open (JavaScript adds this class) */
+.user-profile-menu.open {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+}
+
+
+/* Add shadow and pointer arrow above menu for visual cue */
+.user-profile-menu::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -9px;
+    right: 18px;
+    width: 18px;
+    height: 18px;
+    background: var(--white);
+    border-left: 1px solid var(--slate-200);
+    border-top: 1px solid var(--slate-200);
+    transform: rotate(45deg);
+    z-index: 1;
+    box-shadow: -2px -2px 6px rgba(15, 23, 42, 0.05);
+}
+
+/* Profile header styling */
 .user-profile-header {
     padding: var(--space-4);
     border-bottom: 1px solid var(--slate-200);
@@ -2114,20 +1996,24 @@ footer a:hover {
     justify-content: center;
     font-weight: 600;
     font-size: var(--text-lg);
+    flex-shrink: 0;
 }
 
 .user-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .user-email-display {
-    font-weight: 500;
     color: var(--slate-900);
     font-size: var(--text-sm);
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 180px; /* Allow more space for email */
 }
 
 .email-verified-badge,
@@ -2150,6 +2036,7 @@ footer a:hover {
     color: var(--warning);
 }
 
+/* Actions: vertical list with spacing */
 .user-profile-actions {
     padding: var(--space-2);
 }
@@ -2165,15 +2052,52 @@ footer a:hover {
     font-size: var(--text-sm);
     color: var(--slate-700);
     transition: background-color 0.2s ease;
+    display: block;
 }
 
-.menu-item:hover {
+.menu-item:hover,
+.menu-item:focus {
     background: var(--slate-100);
+    color: var(--accent);
+    outline: none;
 }
 
 .menu-item:active {
     background: var(--slate-200);
 }
+
+/* Animate chevron when menu is open (optional, requires JS to add a class) */
+.user-profile-trigger.menu-open .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* Responsive adjustments for profile dropdown */
+@media (max-width: 500px) {
+    .user-profile-menu {
+        right: var(--space-4);
+        left: var(--space-4);
+        min-width: auto;
+        width: auto;
+        max-width: calc(100vw - 2 * var(--space-4));
+    }
+
+    .user-profile-menu::before {
+        right: 26px;
+    }
+
+    .user-email {
+        display: none; /* Hide email on very small screens */
+    }
+
+    .user-profile-header {
+        padding: var(--space-3);
+    }
+
+    .user-email-display {
+        max-width: 120px;
+    }
+}
+
 
 /* Header Updates for Auth */
 header {
@@ -2197,6 +2121,35 @@ header p {
     margin: 0;
     color: var(--slate-600);
     font-size: var(--text-sm);
+}
+
+/* Form disabled state for unauthenticated users */
+.form-disabled {
+    position: relative;
+}
+
+.form-disabled::after {
+    content: '🔒 Sign in required to save data';
+    position: absolute;
+    top: -40px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background: var(--warning-bg);
+    color: var(--warning);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border: 1px solid var(--warning);
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.form-disabled:hover::after {
+    opacity: 1;
 }
 
 /* Responsive Auth */
