@@ -82,24 +82,6 @@ const ROLE_KEYWORDS: Record<string, string[]> = {
   'product': ['product manager', 'pm', 'product owner', 'po'],
 };
 
-/**
- * Company size indicators
- */
-const COMPANY_SIZE_KEYWORDS: Record<string, string[]> = {
-  'startup': ['startup', 'early stage', 'seed', 'series a'],
-  'small': ['small business', 'boutique', 'family owned'],
-  'large': ['fortune 500', 'fortune 1000', 'global', 'multinational'],
-  'enterprise': ['enterprise', 'corporate', 'conglomerate'],
-};
-
-/**
- * Location keywords
- */
-const LOCATION_KEYWORDS: Record<string, string[]> = {
-  'remote': ['remote', 'work from home', 'wfh', 'distributed', 'anywhere'],
-  'hybrid': ['hybrid', 'flexible', 'part remote', 'mixed'],
-  'international': ['international', 'global', 'overseas', 'relocate'],
-};
 
 /**
  * Seniority level keywords

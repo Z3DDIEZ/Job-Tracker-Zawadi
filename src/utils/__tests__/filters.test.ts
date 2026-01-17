@@ -44,6 +44,7 @@ describe('FilterManager', () => {
       status: 'all',
       dateRange: 'all',
       visaSponsorship: 'all',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
@@ -57,6 +58,7 @@ describe('FilterManager', () => {
       status: 'all',
       dateRange: 'all',
       visaSponsorship: 'all',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
@@ -70,6 +72,7 @@ describe('FilterManager', () => {
       status: 'Applied',
       dateRange: 'all',
       visaSponsorship: 'all',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
@@ -83,6 +86,7 @@ describe('FilterManager', () => {
       status: 'all',
       dateRange: 'all',
       visaSponsorship: 'true',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
@@ -96,6 +100,7 @@ describe('FilterManager', () => {
       status: 'all',
       dateRange: 'all',
       visaSponsorship: 'all',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
@@ -108,6 +113,7 @@ describe('FilterManager', () => {
       status: 'Applied',
       dateRange: 'all',
       visaSponsorship: 'true',
+      tags: [],
     };
 
     const result = FilterManager.applyFilters(mockApplications, filters);
