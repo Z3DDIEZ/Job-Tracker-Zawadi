@@ -73,15 +73,40 @@
                 
                 <div class="checkbox-group">
                     <label>
-                        <input 
-                            type="checkbox" 
-                            id="visa" 
+                        <input
+                            type="checkbox"
+                            id="visa"
                             name="visa"
                         >
                         <span>Visa Sponsorship Available</span>
                     </label>
                 </div>
-                
+
+                <!-- Tags Section -->
+                <div class="form-group">
+                    <label>Tags (Optional)</label>
+                    <div id="tags-container" class="tags-container">
+                        <div id="tag-suggestions" class="tag-suggestions" style="display: none;">
+                            <p class="suggestions-title">💡 Suggested tags:</p>
+                            <div id="suggestions-list" class="suggestions-list"></div>
+                        </div>
+                        <div id="selected-tags" class="selected-tags"></div>
+                        <div class="tag-input-container">
+                            <input
+                                type="text"
+                                id="tag-input"
+                                placeholder="Add tags... (press Enter or comma to add)"
+                                class="tag-input"
+                            >
+                            <button type="button" id="add-tag-btn" class="add-tag-btn">Add</button>
+                        </div>
+                        <div class="tag-categories">
+                            <p class="categories-title">Quick add:</p>
+                            <div id="tag-categories-list" class="tag-categories-list"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" id="submit-btn">
                     <span>Add Application</span>
                 </button>
@@ -164,6 +189,16 @@
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Tags</label>
+                    <div id="tag-filter-container" class="tag-filter-container">
+                        <div id="selected-tag-filters" class="selected-tag-filters"></div>
+                        <select id="tag-filter-select" class="tag-filter-select">
+                            <option value="">Add tag filter...</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             

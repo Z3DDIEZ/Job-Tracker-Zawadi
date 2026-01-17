@@ -18,6 +18,8 @@ import {
 } from './stores/applicationStore';
 import { Validators } from './utils/validators';
 import { FilterManager } from './utils/filters';
+import { TaggingService } from './services/taggingService';
+import type { Tag, TagSuggestion } from './types';
 import { SortManager } from './utils/sorting';
 import { CacheManager } from './utils/cache';
 import { analyticsService } from './services/analytics';
@@ -53,7 +55,7 @@ import { createLoginForm } from './components/auth/LoginForm';
 import { createSignUpForm } from './components/auth/SignUpForm';
 import { createUserProfile } from './components/auth/UserProfile';
 import type { Chart } from 'chart.js';
-import type { JobApplication, ApplicationStatus, SortOption } from './types';
+import type { JobApplication, ApplicationStatus, SortOption, ApplicationFilters } from './types';
 
 // Firebase initialization
 let database: firebase.database.Database | undefined;
@@ -172,6 +174,10 @@ const itemsPerPage = 20;
 // Edit Mode - Store original data for comparison
 let originalApplicationData: JobApplication | null = null;
 
+// Tag management state
+let selectedTags: Tag[] = [];
+let tagSuggestions: TagSuggestion[] = [];
+
 // ========================================
 // FORM SUBMISSION WITH VALIDATION
 // ========================================
@@ -191,6 +197,7 @@ form?.addEventListener('submit', function (event) {
   const dateApplied = (document.getElementById('date') as HTMLInputElement).value;
   const status = (document.getElementById('status') as HTMLSelectElement).value;
   const visaSponsorship = (document.getElementById('visa') as HTMLInputElement).checked;
+  const tags = getSelectedTags();
 
   clearValidationErrors();
 
@@ -229,7 +236,7 @@ form?.addEventListener('submit', function (event) {
     }
     updateApplication(editId, sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship);
   } else {
-    addApplication(sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship);
+    addApplication(sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship, tags);
   }
 });
 
@@ -264,7 +271,8 @@ function addApplication(
   role: string,
   dateApplied: string,
   status: ApplicationStatus,
-  visaSponsorship: boolean
+  visaSponsorship: boolean,
+  tags?: Tag[]
 ): void {
   if (!submitBtn) return;
 
@@ -312,6 +320,7 @@ function addApplication(
     visaSponsorship,
     timestamp: Date.now(),
     id: newApplicationRef.key || '',
+    tags: tags && tags.length > 0 ? tags : undefined,
   };
 
   newApplicationRef
@@ -325,6 +334,7 @@ function addApplication(
       });
       showSuccessMessage('Application added successfully!');
       form.reset();
+      clearTags();
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add Application';
       CacheManager.invalidate();
@@ -336,6 +346,246 @@ function addApplication(
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add Application';
     });
+}
+
+// ========================================
+// TAG MANAGEMENT FUNCTIONS
+// ========================================
+
+/**
+ * Initialize tag management UI
+ */
+function initializeTagManagement(): void {
+  const tagInput = document.getElementById('tag-input') as HTMLInputElement;
+  const addTagBtn = document.getElementById('add-tag-btn') as HTMLButtonElement;
+  const companyInput = document.getElementById('company') as HTMLInputElement;
+  const roleInput = document.getElementById('role') as HTMLInputElement;
+
+  if (!tagInput || !addTagBtn) return;
+
+  // Add tag on Enter or comma
+  tagInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const tagText = tagInput.value.trim();
+      if (tagText) {
+        addCustomTag(tagText);
+        tagInput.value = '';
+      }
+    }
+  });
+
+  // Add tag on button click
+  addTagBtn.addEventListener('click', () => {
+    const tagText = tagInput.value.trim();
+    if (tagText) {
+      addCustomTag(tagText);
+      tagInput.value = '';
+    }
+  });
+
+  // Update suggestions when company or role changes
+  if (companyInput) {
+    companyInput.addEventListener('input', () => updateTagSuggestions());
+  }
+  if (roleInput) {
+    roleInput.addEventListener('input', () => updateTagSuggestions());
+  }
+
+  // Initial suggestions update
+  updateTagSuggestions();
+
+  // Render tag categories
+  renderTagCategories();
+}
+
+/**
+ * Add a custom tag
+ */
+function addCustomTag(tagText: string): void {
+  // Create a custom tag (put it in a general category)
+  const customTag: Tag = {
+    id: `custom-${Date.now()}`,
+    name: tagText,
+    category: 'seniority', // Default category for custom tags
+  };
+
+  addTagToSelection(customTag);
+}
+
+/**
+ * Add a tag to the selection
+ */
+function addTagToSelection(tag: Tag): void {
+  // Check if tag is already selected
+  if (selectedTags.some(t => t.id === tag.id)) {
+    return;
+  }
+
+  selectedTags.push(tag);
+  renderSelectedTags();
+  updateTagSuggestions();
+}
+
+/**
+ * Remove a tag from selection
+ */
+function removeTagFromSelection(tagId: string): void {
+  selectedTags = selectedTags.filter(t => t.id !== tagId);
+  renderSelectedTags();
+  updateTagSuggestions();
+}
+
+/**
+ * Render selected tags
+ */
+function renderSelectedTags(): void {
+  const selectedTagsContainer = document.getElementById('selected-tags');
+  if (!selectedTagsContainer) return;
+
+  selectedTagsContainer.innerHTML = '';
+
+  selectedTags.forEach(tag => {
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag selected-tag';
+    tagElement.style.backgroundColor = tag.color || '#6b7280';
+    tagElement.innerHTML = `
+      ${tag.name}
+      <button type="button" class="tag-remove" data-tag-id="${tag.id}">×</button>
+    `;
+
+    // Add remove event listener
+    const removeBtn = tagElement.querySelector('.tag-remove') as HTMLButtonElement;
+    removeBtn.addEventListener('click', () => removeTagFromSelection(tag.id));
+
+    selectedTagsContainer.appendChild(tagElement);
+  });
+}
+
+/**
+ * Render tag suggestions
+ */
+function renderTagSuggestions(): void {
+  const suggestionsContainer = document.getElementById('tag-suggestions');
+  const suggestionsList = document.getElementById('suggestions-list');
+
+  if (!suggestionsContainer || !suggestionsList) return;
+
+  if (tagSuggestions.length === 0) {
+    suggestionsContainer.style.display = 'none';
+    return;
+  }
+
+  suggestionsContainer.style.display = 'block';
+  suggestionsList.innerHTML = '';
+
+  tagSuggestions.forEach(suggestion => {
+    const suggestionElement = document.createElement('button');
+    suggestionElement.type = 'button';
+    suggestionElement.className = 'tag-suggestion';
+    suggestionElement.style.backgroundColor = suggestion.tag.color || '#6b7280';
+    suggestionElement.innerHTML = `
+      ${suggestion.tag.name}
+      <span class="confidence">(${Math.round(suggestion.confidence * 100)}%)</span>
+    `;
+
+    suggestionElement.addEventListener('click', () => {
+      addTagToSelection(suggestion.tag);
+    });
+
+    suggestionsList.appendChild(suggestionElement);
+  });
+}
+
+/**
+ * Render tag categories for quick add
+ */
+function renderTagCategories(): void {
+  const categoriesContainer = document.getElementById('tag-categories-list');
+  if (!categoriesContainer) return;
+
+  categoriesContainer.innerHTML = '';
+
+  const categories = TaggingService.getAllTags();
+
+  // Show a few popular tags from each category
+  Object.entries(categories).forEach(([categoryName, tags]) => {
+    if (tags.length === 0) return;
+
+    const categoryDiv = document.createElement('div');
+    categoryDiv.className = 'tag-category';
+
+    const categoryTitle = document.createElement('span');
+    categoryTitle.className = 'category-title';
+    categoryTitle.textContent = categoryName.replace('-', ' ').toUpperCase() + ':';
+    categoryDiv.appendChild(categoryTitle);
+
+    // Show first 3 tags from each category
+    tags.slice(0, 3).forEach(tag => {
+      const tagBtn = document.createElement('button');
+      tagBtn.type = 'button';
+      tagBtn.className = 'quick-tag-btn';
+      tagBtn.style.backgroundColor = tag.color || '#6b7280';
+      tagBtn.textContent = tag.name;
+      tagBtn.addEventListener('click', () => addTagToSelection(tag));
+      categoryDiv.appendChild(tagBtn);
+    });
+
+    categoriesContainer.appendChild(categoryDiv);
+  });
+}
+
+/**
+ * Update tag suggestions based on current application data
+ */
+function updateTagSuggestions(): void {
+  const companyInput = document.getElementById('company') as HTMLInputElement;
+  const roleInput = document.getElementById('role') as HTMLInputElement;
+
+  if (!companyInput || !roleInput) return;
+
+  const company = companyInput.value.trim();
+  const role = roleInput.value.trim();
+
+  if (!company && !role) {
+    tagSuggestions = [];
+    renderTagSuggestions();
+    return;
+  }
+
+  // Create a temporary application object for suggestions
+  const tempApplication: JobApplication = {
+    id: '',
+    company,
+    role,
+    dateApplied: '',
+    status: 'Applied',
+    visaSponsorship: false,
+    timestamp: Date.now(),
+  };
+
+  // Get suggestions, excluding already selected tags
+  tagSuggestions = TaggingService.generateTagSuggestions(tempApplication)
+    .filter(suggestion => !selectedTags.some(selected => selected.id === suggestion.tag.id));
+
+  renderTagSuggestions();
+}
+
+/**
+ * Clear all tags
+ */
+function clearTags(): void {
+  selectedTags = [];
+  tagSuggestions = [];
+  renderSelectedTags();
+  renderTagSuggestions();
+}
+
+/**
+ * Get selected tags for form submission
+ */
+function getSelectedTags(): Tag[] {
+  return [...selectedTags];
 }
 
 function updateApplication(
@@ -603,6 +853,11 @@ export function editApplication(id: string): void {
       (document.getElementById('status') as HTMLSelectElement).value = app.status || '';
       (document.getElementById('visa') as HTMLInputElement).checked = app.visaSponsorship || false;
 
+      // Populate tags
+      selectedTags = app.tags || [];
+      renderSelectedTags();
+      updateTagSuggestions();
+
       // Switch to edit mode
       setCurrentEditId(id);
       if (submitBtn) {
@@ -814,11 +1069,12 @@ function processAndDisplayApplications(): void {
   const currentSort = sortBy.get().value;
 
   // Convert filter store to ApplicationFilters
-  const appFilters = {
+  const appFilters: ApplicationFilters = {
     search: currentFilters.search || '',
     status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
     dateRange: (currentFilters.dateRange || 'all') as 'all' | 'week' | 'month' | 'quarter',
     visaSponsorship: (currentFilters.visaSponsorship || 'all') as 'all' | 'true' | 'false',
+    tags: (currentFilters.tags || []) as string[],
   };
 
   // Apply filters
@@ -1053,11 +1309,12 @@ function addCSVExportButton(_apps: JobApplication[]): void {
     const currentFilters = filters.get();
     
     // Apply current filters to determine what to export
-    const appFilters = {
+    const appFilters: ApplicationFilters = {
       search: currentFilters.search || '',
       status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
       dateRange: (currentFilters.dateRange || 'all') as 'all' | 'week' | 'month' | 'quarter',
       visaSponsorship: (currentFilters.visaSponsorship || 'all') as 'all' | 'true' | 'false',
+      tags: (currentFilters.tags || []) as string[],
     };
     
     const filtered = FilterManager.applyFilters(filteredApps, appFilters);
@@ -1538,7 +1795,126 @@ export function clearAllFilters(): void {
   if (dateRangeFilter) dateRangeFilter.value = 'all';
   if (visaFilter) visaFilter.value = 'all';
 
+  // Clear tag filters
+  clearTagFilters();
+
   processAndDisplayApplications();
+}
+
+// ========================================
+// TAG FILTERING FUNCTIONS
+// ========================================
+
+/**
+ * Initialize tag filtering UI
+ */
+function initializeTagFiltering(): void {
+  const tagFilterSelect = document.getElementById('tag-filter-select') as HTMLSelectElement;
+
+  if (!tagFilterSelect) return;
+
+  // Populate tag filter dropdown
+  populateTagFilterDropdown();
+
+  // Handle tag selection
+  tagFilterSelect.addEventListener('change', (e) => {
+    const selectedTagId = (e.target as HTMLSelectElement).value;
+    if (selectedTagId) {
+      addTagFilter(selectedTagId);
+      tagFilterSelect.value = ''; // Reset dropdown
+    }
+  });
+}
+
+/**
+ * Populate tag filter dropdown with available tags
+ */
+function populateTagFilterDropdown(): void {
+  const tagFilterSelect = document.getElementById('tag-filter-select') as HTMLSelectElement;
+
+  if (!tagFilterSelect) return;
+
+  // Clear existing options except the first
+  while (tagFilterSelect.children.length > 1) {
+    tagFilterSelect.removeChild(tagFilterSelect.lastChild!);
+  }
+
+  // Get all available tags from tagging service
+  const allTags = TaggingService.getAllTags();
+
+  // Add all tags to dropdown
+  Object.values(allTags).forEach(categoryTags => {
+    categoryTags.forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag.id;
+      option.textContent = `${tag.name} (${tag.category})`;
+      tagFilterSelect.appendChild(option);
+    });
+  });
+}
+
+/**
+ * Add a tag to the active filters
+ */
+function addTagFilter(tagId: string): void {
+  const currentFilters = filters.get();
+  const tagIds = (currentFilters.tags || []) as string[];
+
+  if (!tagIds.includes(tagId)) {
+    updateFilter('tags', [...tagIds, tagId]);
+    renderActiveTagFilters();
+  }
+}
+
+/**
+ * Remove a tag from the active filters
+ */
+function removeTagFilter(tagId: string): void {
+  const currentFilters = filters.get();
+  const tagIds = (currentFilters.tags || []) as string[];
+
+  updateFilter('tags', tagIds.filter(id => id !== tagId));
+  renderActiveTagFilters();
+}
+
+/**
+ * Render active tag filters
+ */
+function renderActiveTagFilters(): void {
+  const container = document.getElementById('selected-tag-filters');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const currentFilters = filters.get();
+  const activeTagIds = (currentFilters.tags || []) as string[];
+
+  activeTagIds.forEach(tagId => {
+    const tag = TaggingService.getTagById(tagId);
+    if (!tag) return;
+
+    const tagElement = document.createElement('span');
+    tagElement.className = 'filter-tag';
+    tagElement.style.backgroundColor = tag.color || '#6b7280';
+    tagElement.innerHTML = `
+      ${tag.name}
+      <button type="button" class="tag-filter-remove" data-tag-id="${tag.id}">×</button>
+    `;
+
+    // Add remove event listener
+    const removeBtn = tagElement.querySelector('.tag-filter-remove') as HTMLButtonElement;
+    removeBtn.addEventListener('click', () => removeTagFilter(tag.id));
+
+    container.appendChild(tagElement);
+  });
+}
+
+/**
+ * Clear all tag filters
+ */
+function clearTagFilters(): void {
+  updateFilter('tags', []);
+  renderActiveTagFilters();
 }
 
 // ========================================
@@ -1793,6 +2169,9 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Initialize tag management
+  initializeTagManagement();
+
   // Initialize filter event listeners (replacing inline handlers)
   const dateRangeFilter = document.getElementById('date-range-filter') as HTMLSelectElement;
   const visaFilter = document.getElementById('visa-filter') as HTMLSelectElement;
@@ -1835,6 +2214,9 @@ window.addEventListener('DOMContentLoaded', () => {
       handleSortChange(target.value);
     });
   }
+
+  // Initialize tag filtering
+  initializeTagFiltering();
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', cancelEdit);

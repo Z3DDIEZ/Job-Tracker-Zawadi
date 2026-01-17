@@ -53,6 +53,20 @@ export const FilterManager = {
       }
     }
 
+    // Tag filter
+    if (filters.tags && filters.tags.length > 0) {
+      filtered = filtered.filter((app) => {
+        if (!app.tags || app.tags.length === 0) {
+          return false; // No tags on application, doesn't match
+        }
+
+        // Check if application has any of the selected tags
+        return filters.tags.some(selectedTagId =>
+          app.tags!.some(appTag => appTag.id === selectedTagId)
+        );
+      });
+    }
+
     return filtered;
   },
 };

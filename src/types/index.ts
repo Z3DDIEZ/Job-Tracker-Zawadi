@@ -20,6 +20,7 @@ export interface JobApplication {
   visaSponsorship: boolean;
   timestamp: number;
   updatedAt?: number;
+  tags?: Tag[];
 }
 
 export interface ApplicationFilters {
@@ -27,6 +28,7 @@ export interface ApplicationFilters {
   status: ApplicationStatus | 'all';
   dateRange: 'all' | 'week' | 'month' | 'quarter';
   visaSponsorship: 'all' | 'true' | 'false';
+  tags: string[]; // Array of tag IDs to filter by
 }
 
 export type SortOption =
@@ -107,4 +109,31 @@ export type AuthState = 'loading' | 'authenticated' | 'unauthenticated';
 
 export interface AuthStateChangeCallback {
   (user: User | null): void;
+}
+
+// Tagging Types
+export type TagCategory =
+  | 'industry'
+  | 'role-type'
+  | 'company-size'
+  | 'location'
+  | 'seniority'
+  | 'remote-work';
+
+export interface Tag {
+  id: string;
+  name: string;
+  category: TagCategory;
+  color?: string;
+}
+
+export interface TagSuggestion {
+  tag: Tag;
+  confidence: number; // 0-1, how confident the system is in this suggestion
+  reason: string; // Why this tag was suggested
+}
+
+export interface TaggedJobApplication extends JobApplication {
+  tags: Tag[];
+  suggestedTags?: TagSuggestion[];
 }
