@@ -490,10 +490,16 @@ function renderTagSuggestions(): void {
     suggestionElement.type = 'button';
     suggestionElement.className = 'tag-suggestion';
     suggestionElement.style.backgroundColor = suggestion.tag.color || '#6b7280';
-    suggestionElement.innerHTML = `
-      ${suggestion.tag.name}
-      <span class="confidence">(${Math.round(suggestion.confidence * 100)}%)</span>
-    `;
+
+    // Safely add tag name as text content
+    suggestionElement.textContent = suggestion.tag.name;
+
+    // Create confidence span element explicitly
+    const confidenceSpan = document.createElement('span');
+    confidenceSpan.className = 'confidence';
+    confidenceSpan.textContent = `(${Math.round(suggestion.confidence * 100)}%)`;
+
+    suggestionElement.appendChild(confidenceSpan);
 
     suggestionElement.addEventListener('click', () => {
       addTagToSelection(suggestion.tag);
@@ -1902,14 +1908,19 @@ function renderActiveTagFilters(): void {
     const tagElement = document.createElement('span');
     tagElement.className = 'filter-tag';
     tagElement.style.backgroundColor = tag.color || '#6b7280';
-    tagElement.innerHTML = `
-      ${tag.name}
-      <button type="button" class="tag-filter-remove" data-tag-id="${tag.id}">×</button>
-    `;
 
-    // Add remove event listener
-    const removeBtn = tagElement.querySelector('.tag-filter-remove') as HTMLButtonElement;
+    // Safely add tag name as text content to avoid HTML interpretation
+    tagElement.textContent = tag.name;
+
+    // Create remove button element explicitly instead of using innerHTML
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'tag-filter-remove';
+    removeBtn.setAttribute('data-tag-id', tag.id);
+    removeBtn.textContent = '×';
     removeBtn.addEventListener('click', () => removeTagFilter(tag.id));
+
+    tagElement.appendChild(removeBtn);
 
     container.appendChild(tagElement);
   });
