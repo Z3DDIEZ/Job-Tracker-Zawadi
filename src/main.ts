@@ -449,15 +449,21 @@ function renderSelectedTags(): void {
     const tagElement = document.createElement('span');
     tagElement.className = 'tag selected-tag';
     tagElement.style.backgroundColor = tag.color || '#6b7280';
-    tagElement.innerHTML = `
-      ${tag.name}
-      <button type="button" class="tag-remove" data-tag-id="${tag.id}">×</button>
-    `;
+
+    // Safely add tag name as text content to avoid HTML interpretation
+    tagElement.textContent = tag.name;
+
+    // Create remove button element explicitly instead of using innerHTML
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'tag-remove';
+    removeBtn.dataset.tagId = tag.id;
+    removeBtn.textContent = '×';
 
     // Add remove event listener
-    const removeBtn = tagElement.querySelector('.tag-remove') as HTMLButtonElement;
     removeBtn.addEventListener('click', () => removeTagFromSelection(tag.id));
 
+    tagElement.appendChild(removeBtn);
     selectedTagsContainer.appendChild(tagElement);
   });
 }
