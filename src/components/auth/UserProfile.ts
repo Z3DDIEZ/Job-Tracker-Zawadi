@@ -7,32 +7,6 @@ import { authService } from '@/services/authService';
 import { animationService } from '@/services/animationService';
 import type { User } from '@/types';
 
-/**
- * Refresh user profile display after verification email is sent
- */
-function refreshUserProfile(user: User): void {
-  // Find the user profile menu and update the verification status
-  const userProfileMenu = document.getElementById('user-profile-menu');
-  if (!userProfileMenu) return;
-
-  // Find the email verification badge
-  const verificationBadge = userProfileMenu.querySelector('.email-verified-badge, .email-unverified-badge');
-  if (verificationBadge) {
-    if (user.emailVerified) {
-      verificationBadge.className = 'email-verified-badge';
-      verificationBadge.textContent = '✓ Verified';
-    } else {
-      verificationBadge.className = 'email-unverified-badge';
-      verificationBadge.textContent = '⚠ Not verified';
-    }
-  }
-
-  // Hide/show resend verification button
-  const resendBtn = userProfileMenu.querySelector('#resend-verification-btn') as HTMLElement;
-  if (resendBtn) {
-    resendBtn.style.display = user.emailVerified ? 'none' : 'flex';
-  }
-}
 
 export interface UserProfileOptions {
   onSignOut?: () => void;
