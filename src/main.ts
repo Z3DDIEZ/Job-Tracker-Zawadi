@@ -49,6 +49,7 @@ import {
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
 import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
+import { triggerCSVImport, formatImportResult,ImportError, generateErrorReport, type ImportResult } from './utils/importHelpers';
 import { animationService } from './services/animationService';
 import { authService } from './services/authService';
 import { createLoginForm } from './components/auth/LoginForm';
@@ -1300,15 +1301,20 @@ function displayAnalyticsDashboard(apps: JobApplication[]): void {
 }
 
 function addCSVExportButton(_apps: JobApplication[]): void {
-  // Remove existing export button if any
-  const existingBtn = document.getElementById('csv-export-btn');
-  if (existingBtn) {
-    existingBtn.remove();
-  }
+  // Remove existing export/import buttons if any
+  const existingExportBtn = document.getElementById('csv-export-btn');
+  const existingImportBtn = document.getElementById('csv-import-btn');
+  if (existingExportBtn) existingExportBtn.remove();
+  if (existingImportBtn) existingImportBtn.remove();
 
   // Find analytics section header
   const analyticsHeader = analyticsSection?.querySelector('h2');
   if (!analyticsHeader) return;
+
+  // Create button container
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'csv-buttons-container';
+  buttonContainer.style.cssText = 'display: flex; gap: 0.75rem; margin-top: 0.5rem;';
 
   // Create export button
   const exportBtn = document.createElement('button');
@@ -1320,7 +1326,6 @@ function addCSVExportButton(_apps: JobApplication[]): void {
     const filteredApps = applications.get();
     const currentFilters = filters.get();
     
-    // Apply current filters to determine what to export
     const appFilters: ApplicationFilters = {
       search: currentFilters.search || '',
       status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
@@ -1337,8 +1342,280 @@ function addCSVExportButton(_apps: JobApplication[]): void {
     exportToCSV(filtered, filename);
   });
 
-  // Insert button after header
-  analyticsHeader.insertAdjacentElement('afterend', exportBtn);
+  // Create import button
+  const importBtn = document.createElement('button');
+  importBtn.id = 'csv-import-btn';
+  importBtn.className = 'csv-import-btn';
+  importBtn.textContent = '📥 Import CSV';
+  importBtn.title = 'Import applications from CSV file';
+  importBtn.addEventListener('click', () => {
+    handleCSVImport();
+  });
+
+  buttonContainer.appendChild(exportBtn);
+  buttonContainer.appendChild(importBtn);
+
+  // Insert button container after header
+  analyticsHeader.insertAdjacentElement('afterend', buttonContainer);
+}
+
+/**
+ * Handle CSV import with progress indication and error handling
+ */
+function handleCSVImport(): void {
+  const user = authService.getCurrentUser();
+  if (!user) {
+    showErrorMessage('Please sign in to import applications.');
+    return;
+  }
+
+  let progressModal: HTMLElement | null = null;
+
+  triggerCSVImport(
+    (result: ImportResult) => {
+      // Remove progress modal if it exists
+      if (progressModal) {
+        progressModal.remove();
+        progressModal = null;
+      }
+
+      // Only process if user actually selected a file and it has results
+      if (result.imported.length === 0 && result.errors.length === 0) {
+        // User cancelled - do nothing
+        return;
+      }
+
+      // Handle result
+      handleImportResult(result);
+    },
+    (progress: number) => {
+      // Only create modal when progress actually starts
+      if (!progressModal) {
+        progressModal = createImportProgressModal();
+        document.body.appendChild(progressModal);
+      }
+
+      // Update progress bar
+      const progressBar = progressModal.querySelector('.import-progress-bar') as HTMLElement;
+      const progressText = progressModal.querySelector('.import-progress-text') as HTMLElement;
+      
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+    }
+  );
+}
+
+function createImportProgressModal(): HTMLElement {
+  const modal = document.createElement('div');
+  modal.className = 'import-progress-modal';
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); display: flex;
+    align-items: center; justify-content: center; z-index: 10000;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white; padding: 2rem; border-radius: 12px;
+    min-width: 300px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  `;
+
+  const title = document.createElement('h3');
+  title.textContent = 'Importing Applications...';
+  title.style.cssText = 'margin: 0 0 1rem 0; color: #1e293b;';
+
+  const progressContainer = document.createElement('div');
+  progressContainer.style.cssText = `
+    background: #e2e8f0; border-radius: 8px; height: 24px;
+    overflow: hidden; position: relative;
+  `;
+
+  const progressBar = document.createElement('div');
+  progressBar.className = 'import-progress-bar';
+  progressBar.style.cssText = `
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    height: 100%; width: 0%; transition: width 0.3s ease;
+  `;
+
+  const progressText = document.createElement('div');
+  progressText.className = 'import-progress-text';
+  progressText.textContent = '0%';
+  progressText.style.cssText = `
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #1e293b; font-weight: 600; font-size: 0.875rem;
+  `;
+
+  progressContainer.appendChild(progressBar);
+  progressContainer.appendChild(progressText);
+  content.appendChild(title);
+  content.appendChild(progressContainer);
+  modal.appendChild(content);
+
+  return modal;
+}
+
+function handleImportResult(result: ImportResult): void {
+  const formatted = formatImportResult(result);
+
+  if (result.imported.length > 0) {
+    saveImportedApplications(result.imported).then(() => {
+      // Success/warning messages are now handled in saveImportedApplications
+      // based on actual imports vs duplicates
+      
+      eventTrackingService.track('application_added', {
+        importedCount: result.imported.length,
+        errorCount: result.errors.length,
+        skippedCount: result.skipped,
+      });
+
+      if (result.errors.length > 0) {
+        showImportErrorReport(result.errors);
+      }
+
+      CacheManager.invalidate();
+    }).catch((error) => {
+      showErrorMessage(`Failed to save imported applications: ${error.message}`);
+    });
+  } else {
+    showErrorMessage(formatted.message);
+    if (result.errors.length > 0) {
+      showImportErrorReport(result.errors);
+    }
+  }
+}
+
+async function saveImportedApplications(applications: JobApplication[]): Promise<void> {
+  if (!isFirebaseReady()) {
+    throw new Error('Firebase not configured');
+  }
+
+  const user = authService.getCurrentUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const userPath = getUserApplicationsPath(user.uid);
+  const applicationsRef = secureFirebaseRef(database!, userPath);
+
+  // First, fetch existing applications to check for duplicates
+  const snapshot = await applicationsRef.once('value');
+  const existingData = snapshot.val() as Record<string, Partial<JobApplication>> | null;
+  
+  const existingApps: JobApplication[] = existingData
+    ? Object.keys(existingData).map(key => {
+        const appData = existingData[key];
+        return {
+          id: key,
+          company: appData?.company || '',
+          role: appData?.role || '',
+          dateApplied: appData?.dateApplied || '',
+          status: (appData?.status || 'Applied') as ApplicationStatus,
+          visaSponsorship: appData?.visaSponsorship || false,
+          timestamp: appData?.timestamp || Date.now(),
+          updatedAt: appData?.updatedAt,
+          tags: appData?.tags,
+        } as JobApplication;
+      })
+    : [];
+
+  // Filter out duplicates based on company, role, and dateApplied
+  const newApplications = applications.filter(app => {
+    const isDuplicate = existingApps.some(existing => 
+      existing.company.toLowerCase().trim() === app.company.toLowerCase().trim() &&
+      existing.role.toLowerCase().trim() === app.role.toLowerCase().trim() &&
+      existing.dateApplied === app.dateApplied
+    );
+    return !isDuplicate;
+  });
+
+  // Show info if duplicates were found
+  const duplicateCount = applications.length - newApplications.length;
+  if (duplicateCount > 0) {
+    showInfoMessage(
+      `Skipped ${duplicateCount} duplicate application${duplicateCount !== 1 ? 's' : ''} (same company, role, and date already exist)`
+    );
+  }
+
+  // If no new applications to add, return early
+  if (newApplications.length === 0) {
+    return;
+  }
+
+  // Save only the new applications
+  const savePromises = newApplications.map((app) => {
+    const newRef = applicationsRef.push();
+    const appData = {
+      ...app,
+      id: newRef.key || app.id,
+      timestamp: Date.now(),
+    };
+    return newRef.set(appData);
+  });
+
+  await Promise.all(savePromises);
+  
+  // Update success message to reflect actual imports
+  if (newApplications.length < applications.length) {
+    showSuccessMessage(
+      `Successfully imported ${newApplications.length} new application${newApplications.length !== 1 ? 's' : ''}!`
+    );
+  }
+}
+
+
+function showImportErrorReport(errors: ImportError[]): void {
+  const errorReport = generateErrorReport(errors);
+
+  const modal = document.createElement('div');
+  modal.className = 'import-error-modal';
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.7); display: flex;
+    align-items: center; justify-content: center; z-index: 10000;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white; padding: 2rem; border-radius: 12px;
+    max-width: 600px; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  `;
+
+  const title = document.createElement('h3');
+  title.textContent = '⚠️ Import Errors';
+  title.style.cssText = 'margin: 0 0 1rem 0; color: #dc2626;';
+
+  const description = document.createElement('p');
+  description.textContent = `${errors.length} row${errors.length !== 1 ? 's' : ''} could not be imported:`;
+  description.style.cssText = 'margin: 0 0 1rem 0; color: #64748b;';
+
+  const errorList = document.createElement('pre');
+  errorList.textContent = errorReport;
+  errorList.style.cssText = `
+    background: #f8fafc; padding: 1rem; border-radius: 8px;
+    overflow-x: auto; font-size: 0.875rem; color: #1e293b;
+    white-space: pre-wrap; margin: 0 0 1rem 0;
+  `;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.style.cssText = `
+    background: #3b82f6; color: white; border: none;
+    padding: 0.5rem 1.5rem; border-radius: 6px;
+    cursor: pointer; font-size: 1rem;
+  `;
+  closeBtn.addEventListener('click', () => modal.remove());
+
+  content.appendChild(title);
+  content.appendChild(description);
+  content.appendChild(errorList);
+  content.appendChild(closeBtn);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
 }
 
 function displayInsights(insights: string[]): void {
