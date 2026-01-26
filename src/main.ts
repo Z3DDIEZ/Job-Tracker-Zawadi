@@ -44,6 +44,7 @@ import {
   secureFirebaseRead,
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
+import { generateDemoData } from './utils/demoData';
 import { exportToCSV } from './utils/exportHelpers';
 import { triggerCSVImport, formatImportResult, ImportError, generateErrorReport, type ImportResult } from './utils/importHelpers';
 import { animationService } from './services/animationService';
@@ -2081,6 +2082,7 @@ function updateAuthUI(): void {
   if (user) {
     // User is authenticated - show profile
     authContainer.innerHTML = '';
+    authContainer.classList.remove('is-modal'); // Switch to inline mode
     const profile = createUserProfile(user, {
       onSignOut: () => {
         handleSignOut();
@@ -2091,6 +2093,7 @@ function updateAuthUI(): void {
   } else {
     // User is not authenticated - show login/signup
     authContainer.innerHTML = '';
+    authContainer.classList.add('is-modal'); // Switch to modal mode
     const form = currentAuthView === 'login'
       ? createLoginForm({
         onSuccess: () => {
@@ -2100,6 +2103,67 @@ function updateAuthUI(): void {
           currentAuthView = 'signup';
           updateAuthUI();
         },
+
+        onContinueAsGuest: () => {
+          console.log('👤 Continuing as Guest');
+          // Generate demo data if empty
+          const currentApps = applications.get();
+          if (currentApps.length === 0) {
+            const demoApps = generateDemoData(100);
+            setApplications(demoApps);
+            CacheManager.save(demoApps);
+            console.log('🎉 Demo data generated');
+            showSuccessMessage('Demo data loaded! You are in Guest Mode.');
+          } else {
+            showInfoMessage('Welcome back! You are in Guest Mode.');
+          }
+
+          // Hide Auth UI and switch to Guest Header
+          if (authContainer) {
+            authContainer.innerHTML = '';
+            authContainer.classList.remove('is-modal'); // Remove modal overlay
+
+            // Render Guest Header with Exit button
+            const guestHeader = document.createElement('div');
+            guestHeader.style.display = 'flex';
+            guestHeader.style.gap = '1rem';
+            guestHeader.style.alignItems = 'center';
+
+            guestHeader.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 1.2rem;">👤</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #475569;">Guest Mode</span>
+              </div>
+              <button id="exit-guest-btn" style="background: none; border: none; color: #dc2626; font-weight: 600; font-size: 0.875rem; cursor: pointer; padding: 0.5rem; transition: opacity 0.2s;">
+                Exit
+              </button>
+            `;
+
+            authContainer.appendChild(guestHeader);
+
+            // Add Exit Listener
+            document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
+              window.location.reload();
+            });
+          }
+
+          // Enable app (read-only mostly, but allow interaction)
+          updateFormAuthState(null); // Guest is null user
+
+          // In guest mode, we want to allow form interaction but maybe warn on save?
+          // For now, let's just enable the UI so they can see data.
+          // Override form disabled state for guest viewing
+          const form = document.getElementById('application-form') as HTMLFormElement;
+          const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+          if (form && submitBtn) {
+            form.classList.remove('form-disabled');
+            form.style.opacity = '1';
+            form.style.pointerEvents = 'auto';
+            submitBtn.textContent = 'Sign In to Save';
+          }
+
+          processAndDisplayApplications();
+        }
       })
       : createSignUpForm({
         onSuccess: () => {
@@ -2119,7 +2183,7 @@ function updateAuthUI(): void {
 /**
  * Update form state based on authentication status
  */
-function updateFormAuthState(user: any): void {
+export function updateFormAuthState(user: any): void {
   const form = document.getElementById('application-form') as HTMLFormElement;
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 

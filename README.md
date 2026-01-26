@@ -91,6 +91,7 @@ This project solved my own problem while demonstrating full-stack development sk
 - ✅ **Offline Support** - View and manage applications without internet connection
 - ✅ **Performance Optimization** - Lazy loading for analytics charts (50% faster initial load)
 - ✅ **App Icons** - Custom generated icons for all devices
+- ✅ **Guest Mode & Dummy Data** - Explore the application with 100+ generated dummy data entries without signing in
 
 ### Version 4.2.0 - Automated Tagging
 
@@ -237,29 +238,49 @@ Job-Tracker-Zawadi/
 │   ├── main.ts            # Application entry point
 │   ├── types/             # TypeScript type definitions
 │   ├── stores/            # State management (Nanostores)
-│   ├── services/          # Business logic (analytics, etc.)
+│   ├── services/          # Business logic layers
+│   │   ├── authService.ts     # Firebase Auth wrapper
+│   │   ├── analytics.ts       # Analytics calculations
+│   │   ├── taggingService.ts  # Intelligent tagging
+│   │   └── ...
 │   ├── components/        # UI components
-│   │   ├── charts/       # Chart components (Chart.js)
-│   │   └── stats/        # Stat card components
+│   │   ├── auth/         # Login, Signup, Profile
+│   │   ├── charts/       # Chart.js integrations
+│   │   └── stats/        # Dashboard stat cards
 │   ├── utils/             # Utility functions
+│   │   ├── demoData.ts   # Demo data generation
 │   │   ├── validators/   # Input validation
 │   │   ├── security/     # Security utilities
-│   │   ├── filters/      # Filtering logic
-│   │   ├── sorting/      # Sorting logic
-│   │   └── pagination/   # Pagination utilities
+│   │   └── ...
 │   └── config/            # Configuration files
-├── public/                 # Static assets
-│   ├── favicon.svg       # App icon
-│   └── .htaccess         # Security headers
+├── public/                 # Static assets (PWA icons, manifest)
+│   ├── manifest.webmanifest # PWA Manifest
+│   └── ...
 ├── index.html             # Main HTML structure
 ├── style.css              # Complete styling with CSS variables
-├── screenshots/           # Application screenshots
-├── AI Markdown Assistance/ # Documentation and guides
 ├── package.json           # Dependencies and scripts
 ├── tsconfig.json          # TypeScript configuration
-├── vite.config.ts         # Vite build configuration
-└── README.md              # This file
+└── vite.config.ts         # Vite build configuration (PWA plugins)
 ```
+
+## 🏗️ Architecture
+
+### State Management
+The application uses **Nanostores** for atomic, reactive state management.
+- `applicationStore.ts`: Central store for job application data, filters, and sorting.
+- Stores are subscribed to in `main.ts` to trigger UI updates efficiently.
+- Decoupled from UI rendering logic for better testability.
+
+### Authentication Flow
+- **Firebase Auth** handles identity.
+- `authService.ts` provides a clean abstraction over Firebase.
+- `updateFormAuthState` manages UI state (read-only vs. editable) based on auth status.
+- **Guest Mode**: Bypasses auth requirements, generating local demo data for exploration.
+
+### PWA & Offline
+- **Vite PWA Plugin**: Generates Service Worker and Manifest.
+- **Cache-First Strategy**: Assets are cached for instant load.
+- **Offline Persistence**: Firebase SDK handles local caching of data writes when offline.
 
 
 ## 🔐 Security Notes
@@ -378,7 +399,7 @@ This project is open source and available under the [MIT License](LICENSE).
 ## Project Status
 
 **Current Version**: 5.0.0
-**Active Development**: Yes
+**Active Development**: No (Project Completed)
 **Current Phase**: Phase 5 - Production Polish ✅ Complete
 
 ### Completed

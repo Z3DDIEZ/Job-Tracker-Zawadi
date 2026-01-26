@@ -1,0 +1,81 @@
+/* ========================================
+   AUTHENTICATION STYLES (v4.0.0)
+   ======================================== */
+
+/* Auth Container */
+.auth-container {
+    position: relative;
+    margin-left: auto;
+}
+
+/* Modal Mode for Login/Signup */
+.auth-container.is-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6); /* Backdrop */
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; /* Higher than header */
+    margin: 0;
+    padding: var(--space-4);
+}
+
+/* Auth Forms */
+.auth-form {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255,255,255,0.1);
+    padding: var(--space-8);
+    max-width: 440px;
+    width: 100%;
+    animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes scaleIn {
+    from { 
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.auth-form-header {
+    text-align: center;
+    margin-bottom: var(--space-8);
+}
+
+.auth-form-header h2 {
+    font-size: var(--text-3xl);
+    color: var(--slate-900);
+    margin-bottom: var(--space-3);
+    letter-spacing: -0.02em;
+}
+/* ... existing styles ... */
+
+/* Guest Button Styling */
+#guest-mode-btn {
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    color: var(--slate-600);
+    border: 1px solid var(--slate-300);
+    font-weight: 600;
+    margin-top: var(--space-2);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+#guest-mode-btn:hover {
+    background: #fff;
+    color: var(--slate-900);
+    border-color: var(--slate-400);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+#guest-mode-btn:active {
+    transform: translateY(0);
+}

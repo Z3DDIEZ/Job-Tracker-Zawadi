@@ -11,6 +11,7 @@ export interface LoginFormOptions {
   onSuccess?: () => void;
   onError?: (error: AuthError) => void;
   onSwitchToSignUp?: () => void;
+  onContinueAsGuest?: () => void;
 }
 
 /**
@@ -66,6 +67,11 @@ export function createLoginForm(options: LoginFormOptions = {}): HTMLElement {
       
       <div class="auth-form-footer">
         <p>Don't have an account? <button type="button" class="link-button" id="switch-to-signup-btn">Sign up</button></p>
+        <div class="guest-option" style="margin-top: 1rem; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+          <button type="button" class="btn btn-secondary" id="guest-mode-btn" style="background: #f1f5f9; color: #475569; width: 100%;">
+            Continue as Guest
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -77,6 +83,13 @@ export function createLoginForm(options: LoginFormOptions = {}): HTMLElement {
   const passwordError = form.querySelector('#login-password-error') as HTMLElement;
   const forgotPasswordBtn = form.querySelector('#forgot-password-btn') as HTMLButtonElement;
   const switchToSignUpBtn = form.querySelector('#switch-to-signup-btn') as HTMLButtonElement;
+  const guestModeBtn = form.querySelector('#guest-mode-btn') as HTMLButtonElement;
+
+  if (options.onContinueAsGuest) {
+    guestModeBtn.addEventListener('click', () => {
+      options.onContinueAsGuest?.();
+    });
+  }
 
   let isLoading = false;
 
@@ -123,18 +136,18 @@ export function createLoginForm(options: LoginFormOptions = {}): HTMLElement {
 
     try {
       await authService.signIn(email, password);
-      
+
       // Success animation
       animationService.stopButtonLoading(submitBtn);
       animationService.animateSuccessMessage(createSuccessMessage('Signed in successfully!'));
-      
+
       if (options.onSuccess) {
         options.onSuccess();
       }
     } catch (error) {
       animationService.stopButtonLoading(submitBtn);
       const authError = error as AuthError;
-      
+
       // Show error
       if (authError.code.includes('email') || authError.code.includes('user-not-found')) {
         showError(emailError, authError.message);
@@ -160,7 +173,7 @@ export function createLoginForm(options: LoginFormOptions = {}): HTMLElement {
   // Forgot password
   forgotPasswordBtn.addEventListener('click', async () => {
     const email = emailInput.value.trim();
-    
+
     if (!email) {
       showError(emailError, 'Please enter your email address');
       animationService.shake(emailInput);
@@ -242,11 +255,11 @@ function createSuccessMessage(message: string): HTMLElement {
     z-index: 10000;
   `;
   document.body.appendChild(messageEl);
-  
+
   // Remove after animation
   setTimeout(() => {
     messageEl.remove();
   }, 5000);
-  
+
   return messageEl;
 }
