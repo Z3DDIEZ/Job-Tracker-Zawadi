@@ -3,6 +3,8 @@
  * Enhanced version with TypeScript, state management, and modern architecture
  */
 
+import '../style.css';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { getFirebaseConfig } from './config/firebase';
 import {
   applications,
@@ -25,13 +27,7 @@ import { CacheManager } from './utils/cache';
 import { analyticsService } from './services/analytics';
 import { eventTrackingService } from './services/eventTracking';
 import { createStatCard } from './components/stats/StatCard';
-import { createStatusDistributionChart } from './components/charts/StatusDistributionChart';
-import { createApplicationFunnelChart } from './components/charts/ApplicationFunnelChart';
-import { createVelocityChart } from './components/charts/VelocityChart';
-import { createTimeInStatusChart } from './components/charts/TimeInStatusChart';
-import { createVisaImpactChart } from './components/charts/VisaImpactChart';
-import { createDropOffChart } from './components/charts/DropOffChart';
-import { createDayOfWeekChart, createWeekOfMonthChart } from './components/charts/TimingAnalysisChart';
+// Chart imports removed for lazy loading
 import { PaginationManager } from './utils/pagination';
 import { createTableView, type ViewMode } from './utils/viewModes';
 import {
@@ -48,15 +44,18 @@ import {
   secureFirebaseRead,
 } from './utils/firebaseSecurity';
 import { createApplicationCardSafe } from './utils/domHelpers';
-import { exportToCSV, exportChartAsPNG } from './utils/exportHelpers';
-import { triggerCSVImport, formatImportResult,ImportError, generateErrorReport, type ImportResult } from './utils/importHelpers';
+import { exportToCSV } from './utils/exportHelpers';
+import { triggerCSVImport, formatImportResult, ImportError, generateErrorReport, type ImportResult } from './utils/importHelpers';
 import { animationService } from './services/animationService';
 import { authService } from './services/authService';
 import { createLoginForm } from './components/auth/LoginForm';
 import { createSignUpForm } from './components/auth/SignUpForm';
 import { createUserProfile } from './components/auth/UserProfile';
-import type { Chart } from 'chart.js';
+
 import type { JobApplication, ApplicationStatus, SortOption, ApplicationFilters } from './types';
+
+// Initialize PWA Install Prompt
+new PwaInstallPrompt();
 
 // Firebase initialization
 let database: firebase.database.Database | undefined;
@@ -66,31 +65,31 @@ let auth: firebase.auth.Auth | undefined;
 function initializeFirebase(): boolean {
   try {
     const config = getFirebaseConfig();
-    
+
     // Check if config is valid (not all MISSING)
     const hasMissingConfig = Object.values(config).some((value) => value === 'MISSING');
-    
+
     if (hasMissingConfig) {
       showFirebaseConfigError();
       database = undefined;
       auth = undefined;
       return false;
     }
-    
+
     const app = firebase.initializeApp(config);
     database = app.database();
-    
+
     // In Firebase compat mode, auth is accessed via firebase.auth(), not app.auth()
     // Type assertion needed because TypeScript doesn't fully understand the compat API
     auth = (firebase as any).auth() as firebase.auth.Auth;
-    
+
     if (!auth) {
       throw new Error('Firebase Auth failed to initialize');
     }
-    
+
     // Initialize auth service
     authService.initialize(auth);
-    
+
     console.log('🔥 Firebase initialized');
     return true;
   } catch (error) {
@@ -120,7 +119,7 @@ function getUserApplicationsPath(userId?: string): string {
 function showFirebaseConfigError(): void {
   const applicationsSection = document.getElementById('applications-section');
   if (!applicationsSection) return;
-  
+
   const errorDiv = document.createElement('div');
   errorDiv.className = 'firebase-config-error';
   errorDiv.style.cssText = `
@@ -132,7 +131,7 @@ function showFirebaseConfigError(): void {
     max-width: 600px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   `;
-  
+
   errorDiv.innerHTML = `
     <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">⚠️ Firebase Configuration Required</h2>
     <p style="margin: 0 0 1rem 0; line-height: 1.6;">
@@ -148,7 +147,7 @@ function showFirebaseConfigError(): void {
       See <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">README.md</code> or <code style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.4rem; border-radius: 4px;">AI Markdown Assistance/SETUP.md</code> for detailed instructions.
     </p>
   `;
-  
+
   // Clear existing content and show error
   applicationsSection.innerHTML = '';
   applicationsSection.appendChild(errorDiv);
@@ -649,7 +648,7 @@ function updateApplication(
           fromStatus: oldStatus,
           toStatus: status,
         });
-        
+
         // Animate status change
         const statusBadge = document.querySelector(`[data-app-id="${id}"] .status-badge`) as HTMLElement;
         const card = document.querySelector(`[data-app-id="${id}"]`) as HTMLElement;
@@ -683,13 +682,13 @@ function updateApplication(
     })
     .catch((error: unknown) => {
       console.error('❌ Error updating application:', error);
-      
+
       securityLogger.log({
         type: 'unauthorized_access',
         message: 'Failed to update application',
         details: { operation: 'update-application', id, error: String(error).substring(0, 100) },
       });
-      
+
       showErrorMessage('Failed to update application. Please try again.');
       animationService.stopButtonLoading(submitBtn);
       submitBtn.disabled = false;
@@ -742,8 +741,8 @@ export function deleteApplication(id: string): void {
 
       const confirmed = confirm(
         `Are you sure you want to delete the application for ${escapeHtml(app.company || 'Unknown')}?\n\n` +
-          `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
-          `This action cannot be undone.`
+        `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
+        `This action cannot be undone.`
       );
 
       if (!confirmed) {
@@ -1038,19 +1037,19 @@ function loadApplications(): void {
   applicationsRef.on('value', (snapshot: firebase.database.DataSnapshot) => {
     const applicationsData = snapshot.val() as Record<string, Omit<JobApplication, 'id'>> | null;
 
-  if (!applicationsData) {
-    if (applicationsContainer) {
-      applicationsContainer.innerHTML = '';
-      const message = document.createElement('p');
-      message.id = 'no-apps-message';
-      message.textContent = 'No applications yet. Add your first one above!';
-      applicationsContainer.appendChild(message);
+    if (!applicationsData) {
+      if (applicationsContainer) {
+        applicationsContainer.innerHTML = '';
+        const message = document.createElement('p');
+        message.id = 'no-apps-message';
+        message.textContent = 'No applications yet. Add your first one above!';
+        applicationsContainer.appendChild(message);
+      }
+      updateCounter(0, 0);
+      setApplications([]);
+      setFilteredApplications([]);
+      return;
     }
-    updateCounter(0, 0);
-    setApplications([]);
-    setFilteredApplications([]);
-    return;
-  }
 
     // Convert to array
     const applicationsArray: JobApplication[] = Object.keys(applicationsData)
@@ -1124,18 +1123,18 @@ function displayApplications(apps: JobApplication[]): void {
 
   if (apps.length === 0) {
     applicationsContainer.innerHTML = '';
-    
+
     const noResults = document.createElement('div');
     noResults.className = 'no-results';
-    
+
     const message = document.createElement('p');
     message.textContent = 'No applications match your filters';
-    
+
     const clearBtn = document.createElement('button');
     clearBtn.className = 'btn-clear-filters';
     clearBtn.textContent = 'Clear Filters';
     clearBtn.addEventListener('click', clearAllFilters);
-    
+
     noResults.appendChild(message);
     noResults.appendChild(clearBtn);
     applicationsContainer.appendChild(noResults);
@@ -1290,8 +1289,12 @@ function displayAnalyticsDashboard(apps: JobApplication[]): void {
   // Display stat cards
   displayStatCards(metrics);
 
-  // Display charts
-  displayCharts(metrics);
+  // Display charts (Lazy Loaded)
+  import('./components/charts/LazyChartLoader').then(({ renderCharts }) => {
+    if (chartsContainer) {
+      renderCharts(metrics, chartsContainer);
+    }
+  }).catch(err => console.error('Failed to load charts', err));
 
   // Show insights if available
   const insights = analyticsService.getInsights(metrics);
@@ -1325,7 +1328,7 @@ function addCSVExportButton(_apps: JobApplication[]): void {
   exportBtn.addEventListener('click', () => {
     const filteredApps = applications.get();
     const currentFilters = filters.get();
-    
+
     const appFilters: ApplicationFilters = {
       search: currentFilters.search || '',
       status: (currentFilters.status || 'all') as ApplicationStatus | 'all',
@@ -1333,7 +1336,7 @@ function addCSVExportButton(_apps: JobApplication[]): void {
       visaSponsorship: (currentFilters.visaSponsorship || 'all') as 'all' | 'true' | 'false',
       tags: (currentFilters.tags || []) as string[],
     };
-    
+
     const filtered = FilterManager.applyFilters(filteredApps, appFilters);
     const filename = `job-applications-${new Date().toISOString().split('T')[0]}.csv`;
     eventTrackingService.track('export_csv', {
@@ -1398,7 +1401,7 @@ function handleCSVImport(): void {
       // Update progress bar
       const progressBar = progressModal.querySelector('.import-progress-bar') as HTMLElement;
       const progressText = progressModal.querySelector('.import-progress-text') as HTMLElement;
-      
+
       if (progressBar) progressBar.style.width = `${progress}%`;
       if (progressText) progressText.textContent = `${Math.round(progress)}%`;
     }
@@ -1461,7 +1464,7 @@ function handleImportResult(result: ImportResult): void {
     saveImportedApplications(result.imported).then(() => {
       // Success/warning messages are now handled in saveImportedApplications
       // based on actual imports vs duplicates
-      
+
       eventTrackingService.track('application_added', {
         importedCount: result.imported.length,
         errorCount: result.errors.length,
@@ -1500,27 +1503,27 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
   // First, fetch existing applications to check for duplicates
   const snapshot = await applicationsRef.once('value');
   const existingData = snapshot.val() as Record<string, Partial<JobApplication>> | null;
-  
+
   const existingApps: JobApplication[] = existingData
     ? Object.keys(existingData).map(key => {
-        const appData = existingData[key];
-        return {
-          id: key,
-          company: appData?.company || '',
-          role: appData?.role || '',
-          dateApplied: appData?.dateApplied || '',
-          status: (appData?.status || 'Applied') as ApplicationStatus,
-          visaSponsorship: appData?.visaSponsorship || false,
-          timestamp: appData?.timestamp || Date.now(),
-          updatedAt: appData?.updatedAt,
-          tags: appData?.tags,
-        } as JobApplication;
-      })
+      const appData = existingData[key];
+      return {
+        id: key,
+        company: appData?.company || '',
+        role: appData?.role || '',
+        dateApplied: appData?.dateApplied || '',
+        status: (appData?.status || 'Applied') as ApplicationStatus,
+        visaSponsorship: appData?.visaSponsorship || false,
+        timestamp: appData?.timestamp || Date.now(),
+        updatedAt: appData?.updatedAt,
+        tags: appData?.tags,
+      } as JobApplication;
+    })
     : [];
 
   // Filter out duplicates based on company, role, and dateApplied
   const newApplications = applications.filter(app => {
-    const isDuplicate = existingApps.some(existing => 
+    const isDuplicate = existingApps.some(existing =>
       existing.company.toLowerCase().trim() === app.company.toLowerCase().trim() &&
       existing.role.toLowerCase().trim() === app.role.toLowerCase().trim() &&
       existing.dateApplied === app.dateApplied
@@ -1553,7 +1556,7 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
   });
 
   await Promise.all(savePromises);
-  
+
   // Update success message to reflect actual imports
   if (newApplications.length < applications.length) {
     showSuccessMessage(
@@ -1679,243 +1682,9 @@ function displayStatCards(metrics: ReturnType<typeof analyticsService.calculateM
   statCards.forEach((card) => statsGrid.appendChild(card));
 }
 
-// Store chart instances for export
-const chartInstances: Map<string, Chart> = new Map();
 
-function displayCharts(metrics: ReturnType<typeof analyticsService.calculateMetrics>): void {
-  if (!chartsContainer) return;
 
-  chartsContainer.innerHTML = '';
-  chartInstances.clear(); // Clear previous chart instances
 
-  // Helper function to create a chart container with export button
-  const createChartContainer = (
-    id: string,
-    title: string,
-    filename: string,
-    description?: string
-  ): { container: HTMLDivElement; wrapper: HTMLDivElement; canvas: HTMLCanvasElement } => {
-    const container = document.createElement('div');
-    container.className = 'chart-container';
-
-    const header = document.createElement('div');
-    header.className = 'chart-header';
-
-    const titleWrapper = document.createElement('div');
-    titleWrapper.className = 'chart-title-wrapper';
-
-    const chartTitle = document.createElement('div');
-    chartTitle.className = 'chart-title';
-    chartTitle.textContent = title;
-
-    titleWrapper.appendChild(chartTitle);
-
-    // Add description if provided
-    if (description) {
-      const chartDescription = document.createElement('div');
-      chartDescription.className = 'chart-description';
-      chartDescription.textContent = description;
-      titleWrapper.appendChild(chartDescription);
-    }
-
-    const exportBtn = document.createElement('button');
-    exportBtn.className = 'chart-export-btn';
-    exportBtn.textContent = '📥 Export PNG';
-    exportBtn.title = 'Export chart as PNG image';
-    exportBtn.addEventListener('click', () => {
-      const chart = chartInstances.get(id);
-      if (chart) {
-        eventTrackingService.track('export_chart', {
-          chartType: id,
-        });
-        exportChartAsPNG(chart, filename);
-      }
-    });
-
-    header.appendChild(titleWrapper);
-    header.appendChild(exportBtn);
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'chart-wrapper';
-
-    const canvas = document.createElement('canvas');
-    canvas.id = id;
-
-    wrapper.appendChild(canvas);
-    container.appendChild(header);
-    container.appendChild(wrapper);
-    chartsContainer.appendChild(container);
-
-    return { container, wrapper, canvas };
-  };
-
-  // Status Distribution Chart
-  createChartContainer(
-    'status-chart',
-    'Status Distribution',
-    'status-distribution.png',
-    'Breakdown of applications across all status stages'
-  );
-
-  // Application Funnel Chart
-  createChartContainer(
-    'funnel-chart',
-    'Application Funnel',
-    'application-funnel.png',
-    'Conversion rates through each stage of the application process'
-  );
-
-  // Velocity Chart
-  createChartContainer(
-    'velocity-chart',
-    'Weekly Application Velocity',
-    'weekly-velocity.png',
-    'Number of applications submitted per week over time'
-  );
-
-  // Time in Status Chart
-  createChartContainer(
-    'time-status-chart',
-    'Average Time in Status',
-    'time-in-status.png',
-    'Average days spent in each application status'
-  );
-
-  // Visa Impact Chart (only if we have visa data)
-  if (metrics.visaImpact && (metrics.visaImpact.withVisa.total > 0 || metrics.visaImpact.withoutVisa.total > 0)) {
-    createChartContainer(
-      'visa-impact-chart',
-      'Visa Sponsorship Impact',
-      'visa-impact.png',
-      'Comparison of success and response rates for applications with and without visa sponsorship'
-    );
-  }
-
-  // Drop-off Analysis Chart (only if we have drop-off data)
-  if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
-    createChartContainer(
-      'dropoff-chart',
-      'Drop-off Analysis Between Stages',
-      'dropoff-analysis.png',
-      'Percentage of applications that drop off between each stage transition'
-    );
-  }
-
-  // Timing Analysis Charts (only if we have timing data)
-  if (metrics.timingAnalysis) {
-    const hasDayOfWeekData = Object.keys(metrics.timingAnalysis.byDayOfWeek).length > 0;
-    const hasWeekOfMonthData = Object.keys(metrics.timingAnalysis.byWeekOfMonth).length > 0;
-    
-    if (hasDayOfWeekData) {
-      createChartContainer(
-        'timing-day-chart',
-        'Success Rate by Day of Week',
-        'timing-day-of-week.png',
-        'Optimal days to submit applications based on historical success rates'
-      );
-    }
-    if (hasWeekOfMonthData) {
-      createChartContainer(
-        'timing-week-chart',
-        'Success Rate by Week of Month',
-        'timing-week-of-month.png',
-        'Best weeks of the month to submit applications for better outcomes'
-      );
-    }
-  }
-
-  // Render all charts after DOM is ready
-  setTimeout(() => {
-    // Animate chart containers entrance
-    const chartContainers = chartsContainer.querySelectorAll('.chart-container');
-    if (chartContainers.length > 0) {
-      animationService.animateChartEntrance(chartContainers as NodeListOf<HTMLElement>, { delay: 100 });
-    }
-    
-    // Render charts
-    // Status Distribution
-    const statusCanvas = document.getElementById('status-chart') as HTMLCanvasElement;
-    if (statusCanvas) {
-      const chart = createStatusDistributionChart(statusCanvas, {
-        statusDistribution: metrics.statusDistribution,
-      });
-      chartInstances.set('status-chart', chart);
-    }
-
-    // Funnel Chart
-    const funnelCanvas = document.getElementById('funnel-chart') as HTMLCanvasElement;
-    if (funnelCanvas) {
-      const chart = createApplicationFunnelChart(funnelCanvas, {
-        funnelData: metrics.funnelData,
-      });
-      chartInstances.set('funnel-chart', chart);
-    }
-
-    // Velocity Chart
-    const velocityCanvas = document.getElementById('velocity-chart') as HTMLCanvasElement;
-    if (velocityCanvas) {
-      const chart = createVelocityChart(velocityCanvas, {
-        weeklyVelocity: metrics.weeklyVelocity,
-      });
-      chartInstances.set('velocity-chart', chart);
-    }
-
-    // Time in Status Chart
-    const timeStatusCanvas = document.getElementById('time-status-chart') as HTMLCanvasElement;
-    if (timeStatusCanvas) {
-      const chart = createTimeInStatusChart(timeStatusCanvas, {
-        averageTimeInStatus: metrics.averageTimeInStatus,
-      });
-      chartInstances.set('time-status-chart', chart);
-    }
-
-    // Visa Impact Chart
-    if (metrics.visaImpact && (metrics.visaImpact.withVisa.total > 0 || metrics.visaImpact.withoutVisa.total > 0)) {
-      const visaCanvas = document.getElementById('visa-impact-chart') as HTMLCanvasElement;
-      if (visaCanvas) {
-        const chart = createVisaImpactChart(visaCanvas, {
-          withVisa: metrics.visaImpact.withVisa,
-          withoutVisa: metrics.visaImpact.withoutVisa,
-        });
-        chartInstances.set('visa-impact-chart', chart);
-      }
-    }
-
-    // Drop-off Analysis Chart
-    if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
-      const dropOffCanvas = document.getElementById('dropoff-chart') as HTMLCanvasElement;
-      if (dropOffCanvas) {
-        const chart = createDropOffChart(dropOffCanvas, {
-          dropOffAnalysis: metrics.dropOffAnalysis,
-        });
-        chartInstances.set('dropoff-chart', chart);
-      }
-    }
-
-    // Timing Analysis Charts
-    if (metrics.timingAnalysis) {
-      // Day of Week Chart
-      const dayCanvas = document.getElementById('timing-day-chart') as HTMLCanvasElement;
-      if (dayCanvas && Object.keys(metrics.timingAnalysis.byDayOfWeek).length > 0) {
-        const chart = createDayOfWeekChart(dayCanvas, {
-          byDayOfWeek: metrics.timingAnalysis.byDayOfWeek,
-          byWeekOfMonth: metrics.timingAnalysis.byWeekOfMonth,
-        });
-        chartInstances.set('timing-day-chart', chart);
-      }
-
-      // Week of Month Chart
-      const weekCanvas = document.getElementById('timing-week-chart') as HTMLCanvasElement;
-      if (weekCanvas && Object.keys(metrics.timingAnalysis.byWeekOfMonth).length > 0) {
-        const chart = createWeekOfMonthChart(weekCanvas, {
-          byDayOfWeek: metrics.timingAnalysis.byDayOfWeek,
-          byWeekOfMonth: metrics.timingAnalysis.byWeekOfMonth,
-        });
-        chartInstances.set('timing-week-chart', chart);
-      }
-    }
-  }, 100);
-}
 
 function attachPaginationListeners(pagination: ReturnType<typeof PaginationManager.calculatePagination>): void {
   const pageButtons = document.querySelectorAll('.page-btn[data-page]');
@@ -1960,11 +1729,11 @@ export function switchViewMode(mode: ViewMode): void {
 
   // Get elements for transition
   const applicationsSectionElement = applicationsContainer?.parentElement as HTMLElement | null;
-  
+
   // Show/hide sections with animation
   if (mode === 'analytics') {
     eventTrackingService.track('analytics_viewed');
-    
+
     // Animate transition to analytics view
     if (previousMode !== 'analytics') {
       animationService.transitionView(
@@ -1973,7 +1742,7 @@ export function switchViewMode(mode: ViewMode): void {
         { duration: 300, direction: 'horizontal' }
       );
     }
-    
+
     if (analyticsSection) analyticsSection.style.display = 'block';
     if (applicationsSectionElement) {
       // Will be hidden by animation
@@ -1991,7 +1760,7 @@ export function switchViewMode(mode: ViewMode): void {
         { duration: 300, direction: 'horizontal' }
       );
     }
-    
+
     if (analyticsSection) analyticsSection.style.display = 'none';
     if (applicationsSectionElement) {
       applicationsSectionElement.style.display = 'block';
@@ -2009,11 +1778,11 @@ export function switchViewMode(mode: ViewMode): void {
 function createApplicationCard(app: JobApplication): HTMLDivElement {
   // Use safe DOM creation (no innerHTML)
   const card = createApplicationCardSafe(app);
-  
+
   // Attach event listeners using event delegation pattern
   const editBtn = card.querySelector('.btn-edit[data-action="edit"]');
   const deleteBtn = card.querySelector('.btn-delete[data-action="delete"]');
-  
+
   if (editBtn && editBtn instanceof HTMLElement) {
     const appId = editBtn.dataset.appId;
     if (appId) {
@@ -2028,7 +1797,7 @@ function createApplicationCard(app: JobApplication): HTMLDivElement {
       });
     }
   }
-  
+
   if (deleteBtn && deleteBtn instanceof HTMLElement) {
     const appId = deleteBtn.dataset.appId;
     if (appId) {
@@ -2232,7 +2001,7 @@ function showLoadingState(): void {
 
   if (!CacheManager.getCacheData().isValid) {
     applicationsContainer.innerHTML = '';
-    
+
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'loading-state';
 
@@ -2293,10 +2062,10 @@ function renderAuthUI(): void {
   authContainer = document.createElement('div');
   authContainer.id = 'auth-container';
   authContainer.className = 'auth-container';
-  
+
   // Add to header
   header.appendChild(authContainer);
-  
+
   // Initial render
   updateAuthUI();
 }
@@ -2308,7 +2077,7 @@ function updateAuthUI(): void {
   if (!authContainer) return;
 
   const user = authService.getCurrentUser();
-  
+
   if (user) {
     // User is authenticated - show profile
     authContainer.innerHTML = '';
@@ -2322,26 +2091,26 @@ function updateAuthUI(): void {
   } else {
     // User is not authenticated - show login/signup
     authContainer.innerHTML = '';
-    const form = currentAuthView === 'login' 
+    const form = currentAuthView === 'login'
       ? createLoginForm({
-          onSuccess: () => {
-            // Auth state change will update UI automatically
-          },
-          onSwitchToSignUp: () => {
-            currentAuthView = 'signup';
-            updateAuthUI();
-          },
-        })
+        onSuccess: () => {
+          // Auth state change will update UI automatically
+        },
+        onSwitchToSignUp: () => {
+          currentAuthView = 'signup';
+          updateAuthUI();
+        },
+      })
       : createSignUpForm({
-          onSuccess: () => {
-            // Auth state change will update UI automatically
-          },
-          onSwitchToLogin: () => {
-            currentAuthView = 'login';
-            updateAuthUI();
-          },
-        });
-    
+        onSuccess: () => {
+          // Auth state change will update UI automatically
+        },
+        onSwitchToLogin: () => {
+          currentAuthView = 'login';
+          updateAuthUI();
+        },
+      });
+
     authContainer.appendChild(form);
     animationService.animateCardEntrance([form]);
   }
@@ -2430,25 +2199,25 @@ function initializeAuth(): void {
 
 window.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 App initialized (Enhanced v4.0.0 with Authentication)');
-  
+
   // Initialize Firebase and only load applications if successful
   const firebaseInitialized = initializeFirebase();
-  
+
   if (firebaseInitialized) {
     // Render auth UI
     renderAuthUI();
-    
+
     // Initialize auth state listener
     initializeAuth();
-    
+
     // Note: loadApplications() will be called automatically when user signs in
   }
-  
+
   // Subscribe to store changes
   filters.subscribe(() => {
     processAndDisplayApplications();
   });
-  
+
   sortBy.subscribe(() => {
     processAndDisplayApplications();
   });
@@ -2471,7 +2240,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const visaFilter = document.getElementById('visa-filter') as HTMLSelectElement;
   const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
   const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
-  
+
   // Add form field focus animations
   const formFields = form?.querySelectorAll('input, select, textarea');
   formFields?.forEach((field) => {
@@ -2519,12 +2288,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Event delegation for table actions (handles dynamically created buttons)
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
-    
+
     // Handle table row actions
     if (target.classList.contains('btn-edit-small') || target.classList.contains('btn-delete-small')) {
       const action = target.dataset.action;
       const appId = target.dataset.appId;
-      
+
       if (appId) {
         try {
           validateApplicationId(appId);
@@ -2543,7 +2312,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Make functions globally accessible for inline handlers
-(window as Window & typeof globalThis & { 
+(window as Window & typeof globalThis & {
   editApplication: typeof editApplication;
   deleteApplication: typeof deleteApplication;
   cancelEdit: typeof cancelEdit;

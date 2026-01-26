@@ -4,7 +4,7 @@
  */
 
 import { atom, map } from 'nanostores';
-import { persistentMap } from '@nanostores/persistent';
+import { persistentMap, persistentAtom } from '@nanostores/persistent';
 import type {
   JobApplication,
   ApplicationFilters,
@@ -12,7 +12,15 @@ import type {
 } from '@/types';
 
 // Core application state
-export const applications = atom<JobApplication[]>([]);
+// Use persistentAtom to cache applications for offline access
+export const applications = persistentAtom<JobApplication[]>(
+  'job-tracker-applications',
+  [],
+  {
+    encode: JSON.stringify,
+    decode: JSON.parse,
+  }
+);
 export const filteredApplications = atom<JobApplication[]>([]);
 export const currentEditId = atom<string | null>(null);
 

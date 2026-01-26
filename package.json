@@ -1,6 +1,6 @@
 {
   "name": "job-application-tracker",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "description": "A data-driven job search assistant - Personal productivity platform with full-stack capabilities",
   "type": "module",
   "scripts": {
@@ -38,6 +38,7 @@
     "prettier": "^3.1.0",
     "typescript": "^5.3.2",
     "vite": "^7.3.1",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.16"
   },
   "dependencies": {
