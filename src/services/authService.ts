@@ -1,7 +1,7 @@
 /**
  * Authentication Service
  * Handles Firebase Authentication operations
- * 
+ *
  * Features:
  * - Email/Password authentication
  * - User session management
@@ -23,7 +23,7 @@ class AuthService {
     this.auth = auth;
 
     // Listen for auth state changes
-    auth.onAuthStateChanged((firebaseUser) => {
+    auth.onAuthStateChanged(firebaseUser => {
       if (firebaseUser) {
         this.currentUser = this.mapFirebaseUser(firebaseUser);
       } else {
@@ -31,7 +31,7 @@ class AuthService {
       }
 
       // Notify all listeners
-      this.authStateListeners.forEach((callback) => {
+      this.authStateListeners.forEach(callback => {
         callback(this.currentUser);
       });
     });
@@ -66,15 +66,18 @@ class AuthService {
     const errorMessages: Record<string, string> = {
       'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
       'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/operation-not-allowed': 'Email/password authentication is not enabled. Please contact support.',
+      'auth/operation-not-allowed':
+        'Email/password authentication is not enabled. Please contact support.',
       'auth/weak-password': 'Password should be at least 6 characters.',
       'auth/user-disabled': 'This account has been disabled.',
       'auth/user-not-found': 'No account found with this email address.',
       'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/invalid-login-credentials': 'Invalid email or password. Please check your credentials and try again.',
+      'auth/invalid-login-credentials':
+        'Invalid email or password. Please check your credentials and try again.',
       'auth/invalid-credential': 'Invalid email or password.',
       'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-      'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
+      'auth/network-request-failed':
+        'Network error. Please check your internet connection and try again.',
       'auth/internal-error': 'An internal error occurred. Please try again later.',
       'auth/invalid-api-key': 'Invalid API key. Please check your Firebase configuration.',
       'auth/app-deleted': 'Firebase app has been deleted. Please contact support.',
@@ -93,7 +96,10 @@ class AuthService {
 
     return {
       code: error.code,
-      message: errorMessages[error.code] || error.message || 'An authentication error occurred. Please try again.',
+      message:
+        errorMessages[error.code] ||
+        error.message ||
+        'An authentication error occurred. Please try again.',
     };
   }
 
@@ -115,7 +121,7 @@ class AuthService {
       }
 
       const userCredential = await this.auth!.createUserWithEmailAndPassword(email, password);
-      
+
       if (!userCredential.user) {
         throw new Error('Failed to create user account.');
       }
@@ -132,7 +138,7 @@ class AuthService {
     } catch (error) {
       // Log the actual error for debugging
       console.error('Sign up error:', error);
-      
+
       // Handle different error types
       if (error && typeof error === 'object' && 'code' in error) {
         const authError = error as firebase.auth.Error;
@@ -161,7 +167,7 @@ class AuthService {
 
     try {
       const userCredential = await this.auth!.signInWithEmailAndPassword(email, password);
-      
+
       if (!userCredential.user) {
         throw new Error('Failed to sign in.');
       }
@@ -261,7 +267,10 @@ class AuthService {
       const reloadedUser = this.auth!.currentUser;
 
       if (!reloadedUser) {
-        throw { code: 'auth/user-not-found', message: 'User session expired. Please sign in again.' };
+        throw {
+          code: 'auth/user-not-found',
+          message: 'User session expired. Please sign in again.',
+        };
       }
 
       if (reloadedUser.emailVerified) {
@@ -272,7 +281,6 @@ class AuthService {
       await (reloadedUser as any).sendEmailVerification();
 
       console.log('✅ Email verification sent successfully to:', reloadedUser.email);
-
     } catch (error) {
       console.error('❌ Email verification error:', error);
 
@@ -282,7 +290,8 @@ class AuthService {
 
         // Map additional email verification specific errors
         const verificationErrorMessages: Record<string, string> = {
-          'auth/too-many-requests': 'Too many verification emails sent recently. Please wait a few minutes before trying again.',
+          'auth/too-many-requests':
+            'Too many verification emails sent recently. Please wait a few minutes before trying again.',
           'auth/user-token-expired': 'Your session has expired. Please sign in again.',
           'auth/user-disabled': 'Your account has been disabled. Please contact support.',
           'auth/invalid-user-token': 'Invalid session. Please sign in again.',
@@ -292,7 +301,7 @@ class AuthService {
         if (verificationErrorMessages[authError.code]) {
           throw {
             code: authError.code,
-            message: verificationErrorMessages[authError.code]
+            message: verificationErrorMessages[authError.code],
           };
         }
 
@@ -303,13 +312,13 @@ class AuthService {
       if (error instanceof Error) {
         throw {
           code: 'auth/network-error',
-          message: 'Network error. Please check your connection and try again.'
+          message: 'Network error. Please check your connection and try again.',
         };
       }
 
       throw {
         code: 'auth/unknown-error',
-        message: 'Failed to send verification email. Please try again later.'
+        message: 'Failed to send verification email. Please try again later.',
       };
     }
   }

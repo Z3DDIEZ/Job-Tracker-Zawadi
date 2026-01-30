@@ -103,7 +103,7 @@ export function createLoginForm(options: LoginFormOptions = {}): HTMLElement {
   });
 
   // Form submission
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
 
     if (isLoading) return;

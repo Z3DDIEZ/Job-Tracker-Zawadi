@@ -31,12 +31,7 @@ export interface ApplicationFilters {
   tags: string[]; // Array of tag IDs to filter by
 }
 
-export type SortOption =
-  | 'date-desc'
-  | 'date-asc'
-  | 'company-asc'
-  | 'company-desc'
-  | 'status';
+export type SortOption = 'date-desc' | 'date-asc' | 'company-asc' | 'company-desc' | 'status';
 
 export interface AppState {
   applications: JobApplication[];
@@ -68,7 +63,12 @@ export interface CacheData {
 }
 
 export interface AnalyticsEvent {
-  type: 'application_added' | 'application_updated' | 'application_deleted' | 'filter_applied' | 'status_changed';
+  type:
+    | 'application_added'
+    | 'application_updated'
+    | 'application_deleted'
+    | 'filter_applied'
+    | 'status_changed';
   data?: Record<string, unknown>;
   timestamp: number;
 }
@@ -81,7 +81,12 @@ export interface AnalyticsMetrics {
   statusDistribution: Record<ApplicationStatus, number>;
   weeklyVelocity: Array<{ week: string; count: number }>;
   funnelData: Array<{ stage: string; count: number; conversionRate: number }>;
-  dropOffAnalysis?: Array<{ fromStage: string; toStage: string; dropOffRate: number; count: number }>;
+  dropOffAnalysis?: Array<{
+    fromStage: string;
+    toStage: string;
+    dropOffRate: number;
+    count: number;
+  }>;
   timingAnalysis?: {
     byDayOfWeek: Record<string, { count: number; successRate: number }>;
     byWeekOfMonth: Record<string, { count: number; successRate: number }>;

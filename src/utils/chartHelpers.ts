@@ -11,10 +11,7 @@ Chart.register(...registerables);
 /**
  * Create a Chart.js chart instance
  */
-export function createChart(
-  canvas: HTMLCanvasElement,
-  config: ChartConfiguration
-): Chart {
+export function createChart(canvas: HTMLCanvasElement, config: ChartConfiguration): Chart {
   return new Chart(canvas, config);
 }
 

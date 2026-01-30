@@ -1,7 +1,7 @@
 /**
  * Firebase Configuration
  * Loads config from environment variables
- * 
+ *
  * SECURITY: No hardcoded credentials allowed
  * All config must come from environment variables
  */
@@ -19,7 +19,15 @@ export function getFirebaseConfig(): FirebaseConfig {
   const appId = import.meta.env.VITE_FIREBASE_APP_ID;
 
   // Validate all required environment variables are present
-  if (!apiKey || !authDomain || !databaseURL || !projectId || !storageBucket || !messagingSenderId || !appId) {
+  if (
+    !apiKey ||
+    !authDomain ||
+    !databaseURL ||
+    !projectId ||
+    !storageBucket ||
+    !messagingSenderId ||
+    !appId
+  ) {
     const missingVars: string[] = [];
     if (!apiKey) missingVars.push('VITE_FIREBASE_API_KEY');
     if (!authDomain) missingVars.push('VITE_FIREBASE_AUTH_DOMAIN');
@@ -35,7 +43,7 @@ export function getFirebaseConfig(): FirebaseConfig {
     console.error('1. Create a .env file in the project root');
     console.error('2. Fill in your Firebase credentials from https://console.firebase.google.com');
     console.error('3. Restart the dev server (npm run dev)');
-    
+
     // In development, show helpful error but don't crash - let the app show a message
     if (import.meta.env.DEV) {
       // Return a config that will fail gracefully when Firebase tries to initialize
@@ -50,7 +58,7 @@ export function getFirebaseConfig(): FirebaseConfig {
         appId: appId || 'MISSING',
       };
     }
-    
+
     // In production, we need Firebase config to work
     // If missing, show clear error message
     console.error('❌ CRITICAL: Firebase configuration missing in production build!');
@@ -58,7 +66,7 @@ export function getFirebaseConfig(): FirebaseConfig {
     console.error('For GitHub Pages:');
     console.error('1. Set GitHub Actions secrets with VITE_FIREBASE_* variables');
     console.error('2. Or build locally with .env file and commit dist/ folder');
-    
+
     // Return empty config - will fail gracefully with error message
     return {
       apiKey: '',

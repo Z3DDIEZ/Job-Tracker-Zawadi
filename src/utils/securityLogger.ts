@@ -61,14 +61,14 @@ class SecurityLogger {
     try {
       const stored = localStorage.getItem(this.storageKey);
       const events: SecurityEvent[] = stored ? JSON.parse(stored) : [];
-      
+
       events.push(event);
-      
+
       // Keep only last 50 events in storage
       if (events.length > 50) {
         events.shift();
       }
-      
+
       localStorage.setItem(this.storageKey, JSON.stringify(events));
     } catch (error) {
       // Silently fail - don't break app if storage is full
@@ -96,7 +96,7 @@ class SecurityLogger {
    */
   getEventCounts(): Record<string, number> {
     const counts: Record<string, number> = {};
-    this.events.forEach((event) => {
+    this.events.forEach(event => {
       counts[event.type] = (counts[event.type] || 0) + 1;
     });
     return counts;

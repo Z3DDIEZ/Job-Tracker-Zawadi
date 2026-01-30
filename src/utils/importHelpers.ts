@@ -27,7 +27,7 @@ export async function importFromCSV(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<ImportResult> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const errors: ImportError[] = [];
     const imported: JobApplication[] = [];
     let skipped = 0;
@@ -103,15 +103,8 @@ function validateAndTransformRow(
   const errors: ImportError[] = [];
 
   // Map common header variations
-  const company =
-    row.company || row.companyname || row['company name'] || row.employer || '';
-  const role =
-    row.role ||
-    row.position ||
-    row.jobtitle ||
-    row['job title'] ||
-    row.title ||
-    '';
+  const company = row.company || row.companyname || row['company name'] || row.employer || '';
+  const role = row.role || row.position || row.jobtitle || row['job title'] || row.title || '';
   const dateApplied =
     row.dateapplied ||
     row['date applied'] ||
@@ -121,11 +114,7 @@ function validateAndTransformRow(
     '';
   const status = row.status || row.applicationstatus || row['application status'] || '';
   const visaSponsorship =
-    row.visasponsorship ||
-    row['visa sponsorship'] ||
-    row.visa ||
-    row.sponsorship ||
-    '';
+    row.visasponsorship || row['visa sponsorship'] || row.visa || row.sponsorship || '';
 
   // Validate required fields
   if (!company || company.trim() === '') {
@@ -321,9 +310,9 @@ export function triggerCSVImport(
   input.accept = '.csv,text/csv';
   input.style.display = 'none';
 
-  input.addEventListener('change', async (e) => {
+  input.addEventListener('change', async e => {
     const file = (e.target as HTMLInputElement).files?.[0];
-    
+
     // User cancelled file selection
     if (!file) {
       onImport({
@@ -403,8 +392,7 @@ export function formatImportResult(result: ImportResult): {
     return {
       title: 'Import Failed',
       message:
-        result.errors[0]?.message ||
-        'Failed to import applications. Please check your CSV file.',
+        result.errors[0]?.message || 'Failed to import applications. Please check your CSV file.',
       type: 'error',
     };
   }

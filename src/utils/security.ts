@@ -22,7 +22,7 @@ export function escapeHtml(unsafe: string): string {
   if (!unsafe || typeof unsafe !== 'string') {
     return '';
   }
-  
+
   const map: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
@@ -30,7 +30,7 @@ export function escapeHtml(unsafe: string): string {
     '"': '&quot;',
     "'": '&#039;',
   };
-  return unsafe.replace(/[&<>"']/g, (m) => map[m] || m);
+  return unsafe.replace(/[&<>"']/g, m => map[m] || m);
 }
 
 /**
@@ -46,6 +46,7 @@ export function sanitizeUserInput(input: string, maxLength: number = 100): strin
   let sanitized = input.trim().slice(0, maxLength);
 
   // Remove null bytes and control characters
+  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
 
   return sanitized;
@@ -110,9 +111,7 @@ class RateLimiter {
     const requests = this.requests.get(key) || [];
 
     // Remove old requests outside the window
-    const recentRequests = requests.filter(
-      (timestamp) => now - timestamp < this.windowMs
-    );
+    const recentRequests = requests.filter(timestamp => now - timestamp < this.windowMs);
 
     if (recentRequests.length >= this.maxRequests) {
       return false;
@@ -159,15 +158,11 @@ export function createSecureElement(
  * Secure attribute setting
  * Validates and sets attributes safely
  */
-export function setSecureAttribute(
-  element: HTMLElement,
-  name: string,
-  value: string
-): void {
+export function setSecureAttribute(element: HTMLElement, name: string, value: string): void {
   if (!value || typeof value !== 'string') {
     return;
   }
-  
+
   // Whitelist of safe attributes
   const safeAttributes = [
     'id',

@@ -15,7 +15,7 @@ export type ViewMode = 'cards' | 'table' | 'analytics';
 export function createTableRow(app: JobApplication): HTMLTableRowElement {
   const row = document.createElement('tr');
   row.className = 'application-row';
-  
+
   // Validate ID before setting
   try {
     validateApplicationId(app.id);
@@ -25,9 +25,7 @@ export function createTableRow(app: JobApplication): HTMLTableRowElement {
     return row; // Return empty row if ID invalid
   }
 
-  const statusClass = app.status
-    ? app.status.toLowerCase().replace(/\s+/g, '-')
-    : 'unknown';
+  const statusClass = app.status ? app.status.toLowerCase().replace(/\s+/g, '-') : 'unknown';
 
   let formattedDate = 'Date not set';
   if (app.dateApplied) {
@@ -121,20 +119,20 @@ export function createTableView(applications: JobApplication[]): HTMLTableElemen
   // Create thead safely
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  
+
   const headers = ['Company', 'Role', 'Date Applied', 'Status', 'Visa', 'Actions'];
-  headers.forEach((headerText) => {
+  headers.forEach(headerText => {
     const th = document.createElement('th');
     th.textContent = headerText;
     headerRow.appendChild(th);
   });
-  
+
   thead.appendChild(headerRow);
 
   // Create tbody
   const tbody = document.createElement('tbody');
-  
-  applications.forEach((app) => {
+
+  applications.forEach(app => {
     const row = createTableRow(app);
     tbody.appendChild(row);
   });

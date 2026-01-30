@@ -1,16 +1,16 @@
 export class PwaInstallPrompt {
-    private installPrompt: any = null;
-    private container: HTMLElement;
-    private installButton!: HTMLButtonElement;
+  private installPrompt: any = null;
+  private container: HTMLElement;
+  private installButton!: HTMLButtonElement;
 
-    constructor() {
-        this.container = document.createElement('div');
-        this.container.className = 'pwa-install-container';
-        this.container.style.display = 'none'; // Hidden by default
+  constructor() {
+    this.container = document.createElement('div');
+    this.container.className = 'pwa-install-container';
+    this.container.style.display = 'none'; // Hidden by default
 
-        // Add styles dynamically
-        const style = document.createElement('style');
-        style.textContent = `
+    // Add styles dynamically
+    const style = document.createElement('style');
+    style.textContent = `
       .pwa-install-container {
         position: fixed;
         bottom: 20px;
@@ -58,61 +58,61 @@ export class PwaInstallPrompt {
         to { transform: translateY(0); opacity: 1; }
       }
     `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
 
-        this.render();
-        this.init();
-    }
+    this.render();
+    this.init();
+  }
 
-    private render() {
-        this.container.innerHTML = `
+  private render() {
+    this.container.innerHTML = `
       <div class="pwa-install-title">Install App</div>
       <button class="pwa-install-btn">Install</button>
       <button class="pwa-close-btn">Not now</button>
     `;
 
-        document.body.appendChild(this.container);
+    document.body.appendChild(this.container);
 
-        this.installButton = this.container.querySelector('.pwa-install-btn') as HTMLButtonElement;
-        const closeBtn = this.container.querySelector('.pwa-close-btn') as HTMLButtonElement;
+    this.installButton = this.container.querySelector('.pwa-install-btn') as HTMLButtonElement;
+    const closeBtn = this.container.querySelector('.pwa-close-btn') as HTMLButtonElement;
 
-        this.installButton.addEventListener('click', () => this.handleInstall());
-        closeBtn.addEventListener('click', () => {
-            this.container.style.display = 'none';
-        });
-    }
+    this.installButton.addEventListener('click', () => this.handleInstall());
+    closeBtn.addEventListener('click', () => {
+      this.container.style.display = 'none';
+    });
+  }
 
-    private init() {
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
-            e.preventDefault();
-            // Stash the event so it can be triggered later.
-            this.installPrompt = e;
-            // Update UI to notify the user they can add to home screen
-            this.container.style.display = 'flex';
-            console.log('PWA install prompt captured');
-        });
+  private init() {
+    window.addEventListener('beforeinstallprompt', e => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      this.installPrompt = e;
+      // Update UI to notify the user they can add to home screen
+      this.container.style.display = 'flex';
+      console.log('PWA install prompt captured');
+    });
 
-        window.addEventListener('appinstalled', () => {
-            // Hide the app-provided install promotion
-            this.container.style.display = 'none';
-            this.installPrompt = null;
-            console.log('PWA was installed');
-        });
-    }
+    window.addEventListener('appinstalled', () => {
+      // Hide the app-provided install promotion
+      this.container.style.display = 'none';
+      this.installPrompt = null;
+      console.log('PWA was installed');
+    });
+  }
 
-    private async handleInstall() {
-        if (!this.installPrompt) return;
+  private async handleInstall() {
+    if (!this.installPrompt) return;
 
-        // Show the install prompt
-        this.installPrompt.prompt();
+    // Show the install prompt
+    this.installPrompt.prompt();
 
-        // Wait for the user to respond to the prompt
-        const { outcome } = await this.installPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
+    // Wait for the user to respond to the prompt
+    const { outcome } = await this.installPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
 
-        // We've used the prompt, and can't use it again, throw it away
-        this.installPrompt = null;
-        this.container.style.display = 'none';
-    }
+    // We've used the prompt, and can't use it again, throw it away
+    this.installPrompt = null;
+    this.container.style.display = 'none';
+  }
 }

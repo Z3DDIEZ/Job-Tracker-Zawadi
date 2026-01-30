@@ -16,10 +16,7 @@ export interface VisaImpactData {
 /**
  * Create a visa impact comparison chart
  */
-export function createVisaImpactChart(
-  canvas: HTMLCanvasElement,
-  data: VisaImpactData
-): Chart {
+export function createVisaImpactChart(canvas: HTMLCanvasElement, data: VisaImpactData): Chart {
   const { withVisa, withoutVisa } = data;
 
   // Prepare data for comparison
@@ -86,25 +83,17 @@ export function createVisaImpactChart(
               const label = context.dataset.label || '';
               const value = context.parsed.y;
               const datasetIndex = context.datasetIndex;
-              
+
               if (datasetIndex === 0) {
                 // With visa
                 const total = withVisa.total;
                 const offers = withVisa.offers;
-                return [
-                  `${label}: ${value}%`,
-                  `Total: ${total} applications`,
-                  `Offers: ${offers}`,
-                ];
+                return [`${label}: ${value}%`, `Total: ${total} applications`, `Offers: ${offers}`];
               } else {
                 // Without visa
                 const total = withoutVisa.total;
                 const offers = withoutVisa.offers;
-                return [
-                  `${label}: ${value}%`,
-                  `Total: ${total} applications`,
-                  `Offers: ${offers}`,
-                ];
+                return [`${label}: ${value}%`, `Total: ${total} applications`, `Offers: ${offers}`];
               }
             },
           },

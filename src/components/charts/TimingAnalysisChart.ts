@@ -18,10 +18,7 @@ let weekOfMonthChartInstance: Chart | null = null;
 /**
  * Create a day of week timing analysis chart
  */
-export function createDayOfWeekChart(
-  canvas: HTMLCanvasElement,
-  data: TimingAnalysisData
-): Chart {
+export function createDayOfWeekChart(canvas: HTMLCanvasElement, data: TimingAnalysisData): Chart {
   // Destroy existing chart if present
   if (dayOfWeekChartInstance) {
     dayOfWeekChartInstance.destroy();
@@ -29,7 +26,7 @@ export function createDayOfWeekChart(
 
   const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayData = dayOrder
-    .map((day) => {
+    .map(day => {
       const dayInfo = data.byDayOfWeek[day];
       return {
         day,
@@ -37,7 +34,7 @@ export function createDayOfWeekChart(
         successRate: dayInfo?.successRate || 0,
       };
     })
-    .filter((item) => item.count > 0); // Only show days with data
+    .filter(item => item.count > 0); // Only show days with data
 
   if (dayData.length === 0) {
     // Show empty state
@@ -52,19 +49,19 @@ export function createDayOfWeekChart(
     return dayOfWeekChartInstance as Chart;
   }
 
-  const labels = dayData.map((item) => item.day.substring(0, 3)); // Abbreviated day names
-  const successRates = dayData.map((item) => item.successRate);
-  const counts = dayData.map((item) => item.count);
+  const labels = dayData.map(item => item.day.substring(0, 3)); // Abbreviated day names
+  const successRates = dayData.map(item => item.successRate);
+  const counts = dayData.map(item => item.count);
 
   // Color bars based on success rate (higher = better = greener)
-  const backgroundColors = successRates.map((rate) => {
+  const backgroundColors = successRates.map(rate => {
     if (rate >= 20) return chartColors.offer;
     if (rate >= 10) return chartColors.finalRound;
     if (rate >= 5) return chartColors.technicalInterview;
     return chartColors.applied;
   });
 
-  const borderColors = successRates.map((rate) => {
+  const borderColors = successRates.map(rate => {
     if (rate >= 20) return chartColors.offerBorder;
     if (rate >= 10) return chartColors.finalRoundBorder;
     if (rate >= 5) return chartColors.technicalInterviewBorder;
@@ -104,14 +101,11 @@ export function createDayOfWeekChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            label: (context) => {
+            label: context => {
               const index = context.dataIndex;
               const rate = successRates[index];
               const count = counts[index];
-              return [
-                `Success rate: ${rate}%`,
-                `Applications: ${count}`,
-              ];
+              return [`Success rate: ${rate}%`, `Applications: ${count}`];
             },
           },
         },
@@ -164,10 +158,7 @@ export function createDayOfWeekChart(
 /**
  * Create a week of month timing analysis chart
  */
-export function createWeekOfMonthChart(
-  canvas: HTMLCanvasElement,
-  data: TimingAnalysisData
-): Chart {
+export function createWeekOfMonthChart(canvas: HTMLCanvasElement, data: TimingAnalysisData): Chart {
   // Destroy existing chart if present
   if (weekOfMonthChartInstance) {
     weekOfMonthChartInstance.destroy();
@@ -182,7 +173,7 @@ export function createWeekOfMonthChart(
       successRate: info.successRate,
     }))
     .sort((a, b) => a.weekNum - b.weekNum)
-    .filter((item) => item.count > 0); // Only show weeks with data
+    .filter(item => item.count > 0); // Only show weeks with data
 
   if (weekData.length === 0) {
     // Show empty state
@@ -197,19 +188,19 @@ export function createWeekOfMonthChart(
     return weekOfMonthChartInstance as Chart;
   }
 
-  const labels = weekData.map((item) => item.week);
-  const successRates = weekData.map((item) => item.successRate);
-  const counts = weekData.map((item) => item.count);
+  const labels = weekData.map(item => item.week);
+  const successRates = weekData.map(item => item.successRate);
+  const counts = weekData.map(item => item.count);
 
   // Color bars based on success rate
-  const backgroundColors = successRates.map((rate) => {
+  const backgroundColors = successRates.map(rate => {
     if (rate >= 20) return chartColors.offer;
     if (rate >= 10) return chartColors.finalRound;
     if (rate >= 5) return chartColors.technicalInterview;
     return chartColors.applied;
   });
 
-  const borderColors = successRates.map((rate) => {
+  const borderColors = successRates.map(rate => {
     if (rate >= 20) return chartColors.offerBorder;
     if (rate >= 10) return chartColors.finalRoundBorder;
     if (rate >= 5) return chartColors.technicalInterviewBorder;
@@ -249,14 +240,11 @@ export function createWeekOfMonthChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            label: (context) => {
+            label: context => {
               const index = context.dataIndex;
               const rate = successRates[index];
               const count = counts[index];
-              return [
-                `Success rate: ${rate}%`,
-                `Applications: ${count}`,
-              ];
+              return [`Success rate: ${rate}%`, `Applications: ${count}`];
             },
           },
         },

@@ -14,7 +14,7 @@ export function sanitizeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     // Log full error for debugging
     console.error('Error details:', error);
-    
+
     // Log security-relevant errors
     if (error.message.includes('Invalid') || error.message.includes('Security')) {
       securityLogger.log({
@@ -28,11 +28,11 @@ export function sanitizeErrorMessage(error: unknown): string {
     if (error.message.includes('permission') || error.message.includes('unauthorized')) {
       return 'You do not have permission to perform this action.';
     }
-    
+
     if (error.message.includes('network') || error.message.includes('connection')) {
       return 'Network error. Please check your connection and try again.';
     }
-    
+
     if (error.message.includes('quota') || error.message.includes('limit')) {
       return 'Service limit reached. Please try again later.';
     }
@@ -47,7 +47,7 @@ export function sanitizeErrorMessage(error: unknown): string {
  */
 export function handleFirebaseError(error: unknown, operation: string): void {
   const errorMessage = sanitizeErrorMessage(error);
-  
+
   securityLogger.log({
     type: 'unauthorized_access',
     message: `Firebase error in ${operation}`,

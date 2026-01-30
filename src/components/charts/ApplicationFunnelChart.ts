@@ -34,9 +34,9 @@ export function createApplicationFunnelChart(
     return chartInstance as Chart;
   }
 
-  const stages = data.funnelData.map((item) => item.stage);
-  const counts = data.funnelData.map((item) => item.count);
-  const conversionRates = data.funnelData.map((item) => item.conversionRate);
+  const stages = data.funnelData.map(item => item.stage);
+  const counts = data.funnelData.map(item => item.count);
+  const conversionRates = data.funnelData.map(item => item.conversionRate);
 
   const config: ChartConfiguration = {
     type: 'bar',
@@ -46,10 +46,8 @@ export function createApplicationFunnelChart(
         {
           label: 'Applications',
           data: counts,
-          backgroundColor: stages.map((stage) =>
-            getStatusColor(stage, 'background')
-          ),
-          borderColor: stages.map((stage) => getStatusColor(stage, 'border')),
+          backgroundColor: stages.map(stage => getStatusColor(stage, 'background')),
+          borderColor: stages.map(stage => getStatusColor(stage, 'border')),
           borderWidth: 2,
         },
       ],
@@ -74,7 +72,7 @@ export function createApplicationFunnelChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            afterLabel: (context) => {
+            afterLabel: context => {
               const index = context.dataIndex;
               const rate = conversionRates[index];
               if (index === 0) {

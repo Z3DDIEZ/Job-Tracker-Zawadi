@@ -18,7 +18,7 @@ export function secureFirebaseRef(
   // Whitelist allowed paths
   // Allow: 'applications' or 'applications/{userId}'
   const allowedPaths = ['applications'];
-  const pathParts = path.split('/').filter((p) => p.length > 0);
+  const pathParts = path.split('/').filter(p => p.length > 0);
 
   const firstPathPart = pathParts[0];
   if (pathParts.length === 0 || !firstPathPart || !allowedPaths.includes(firstPathPart)) {
@@ -57,7 +57,7 @@ export function secureFirebaseRef(
       });
       throw error;
     }
-    
+
     try {
       validateApplicationId(id);
     } catch (error) {

@@ -45,8 +45,7 @@ export const SecurityValidators = {
     if (!regex.test(trimmed)) {
       return {
         valid: false,
-        error:
-          'Company name can only contain letters, numbers, spaces, hyphens, and ampersands',
+        error: 'Company name can only contain letters, numbers, spaces, hyphens, and ampersands',
       };
     }
 
@@ -87,12 +86,11 @@ export const SecurityValidators = {
     }
 
     // Pattern validation
-    const regex = /^[a-zA-Z0-9\s\-\/]{2,100}$/;
+    const regex = /^[a-zA-Z0-9\s\-/]{2,100}$/;
     if (!regex.test(trimmed)) {
       return {
         valid: false,
-        error:
-          'Role can only contain letters, numbers, spaces, hyphens, and forward slashes',
+        error: 'Role can only contain letters, numbers, spaces, hyphens, and forward slashes',
       };
     }
 
@@ -187,11 +185,12 @@ export const SecurityValidators = {
       /Function\(/i,
       /\.\.\//, // Path traversal
       /\.\.\\/, // Windows path traversal
+      // eslint-disable-next-line no-control-regex
       /\0/, // Null bytes
     ];
 
-    const isSuspicious = suspiciousPatterns.some((pattern) => pattern.test(input));
-    
+    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(input));
+
     // Log suspicious patterns
     if (isSuspicious && typeof window !== 'undefined') {
       import('./securityLogger').then(({ securityLogger }) => {
@@ -202,7 +201,7 @@ export const SecurityValidators = {
         });
       });
     }
-    
+
     return isSuspicious;
   },
 

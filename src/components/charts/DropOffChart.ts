@@ -22,10 +22,7 @@ let chartInstance: Chart | null = null;
  * Create a drop-off analysis chart
  * Shows drop-off rates between stages as a horizontal bar chart
  */
-export function createDropOffChart(
-  canvas: HTMLCanvasElement,
-  data: DropOffChartData
-): Chart {
+export function createDropOffChart(canvas: HTMLCanvasElement, data: DropOffChartData): Chart {
   // Destroy existing chart if present
   if (chartInstance) {
     chartInstance.destroy();
@@ -45,21 +42,19 @@ export function createDropOffChart(
   }
 
   // Prepare data for chart
-  const labels = data.dropOffAnalysis.map(
-    (item) => `${item.fromStage} → ${item.toStage}`
-  );
-  const dropOffRates = data.dropOffAnalysis.map((item) => item.dropOffRate);
-  const dropOffCounts = data.dropOffAnalysis.map((item) => item.count);
+  const labels = data.dropOffAnalysis.map(item => `${item.fromStage} → ${item.toStage}`);
+  const dropOffRates = data.dropOffAnalysis.map(item => item.dropOffRate);
+  const dropOffCounts = data.dropOffAnalysis.map(item => item.count);
 
   // Color bars based on drop-off rate (higher = more concerning = redder)
-  const backgroundColors = dropOffRates.map((rate) => {
+  const backgroundColors = dropOffRates.map(rate => {
     if (rate >= 70) return chartColors.rejected; // High drop-off
     if (rate >= 50) return chartColors.phoneScreen; // Medium-high drop-off
     if (rate >= 30) return chartColors.technicalInterview; // Medium drop-off
     return chartColors.applied; // Low drop-off
   });
 
-  const borderColors = dropOffRates.map((rate) => {
+  const borderColors = dropOffRates.map(rate => {
     if (rate >= 70) return chartColors.rejectedBorder;
     if (rate >= 50) return chartColors.phoneScreenBorder;
     if (rate >= 30) return chartColors.technicalInterviewBorder;
@@ -100,16 +95,13 @@ export function createDropOffChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            label: (context) => {
+            label: context => {
               const index = context.dataIndex;
               const rate = dropOffRates[index];
               const count = dropOffCounts[index];
-              return [
-                `Drop-off rate: ${rate}%`,
-                `Applications dropped: ${count}`,
-              ];
+              return [`Drop-off rate: ${rate}%`, `Applications dropped: ${count}`];
             },
-            afterLabel: (context) => {
+            afterLabel: context => {
               const index = context.dataIndex;
               const item = data.dropOffAnalysis[index];
               if (!item) return '';

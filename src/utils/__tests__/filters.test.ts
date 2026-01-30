@@ -77,7 +77,7 @@ describe('FilterManager', () => {
 
     const result = FilterManager.applyFilters(mockApplications, filters);
     expect(result).toHaveLength(2);
-    expect(result.every((app) => app.status === 'Applied')).toBe(true);
+    expect(result.every(app => app.status === 'Applied')).toBe(true);
   });
 
   it('should filter by visa sponsorship', () => {
@@ -91,7 +91,7 @@ describe('FilterManager', () => {
 
     const result = FilterManager.applyFilters(mockApplications, filters);
     expect(result).toHaveLength(2);
-    expect(result.every((app) => app.visaSponsorship === true)).toBe(true);
+    expect(result.every(app => app.visaSponsorship === true)).toBe(true);
   });
 
   it('should return all applications when filters are empty', () => {

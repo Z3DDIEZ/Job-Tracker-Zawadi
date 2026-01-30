@@ -23,9 +23,7 @@ export const CacheManager = {
   load(): JobApplication[] | null {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      const timestamp = parseInt(
-        localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0'
-      );
+      const timestamp = parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0');
       const age = Date.now() - timestamp;
 
       if (cached && age < CACHE_DURATION) {
@@ -57,9 +55,7 @@ export const CacheManager = {
   getCacheData(): CacheData {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      const timestamp = parseInt(
-        localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0'
-      );
+      const timestamp = parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0');
       const age = Date.now() - timestamp;
 
       if (cached && age < CACHE_DURATION) {

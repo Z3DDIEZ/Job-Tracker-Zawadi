@@ -24,13 +24,9 @@ export const SortManager = {
       case 'date-asc':
         return sorted.sort((a, b) => a.timestamp - b.timestamp);
       case 'company-asc':
-        return sorted.sort((a, b) =>
-          (a.company || '').localeCompare(b.company || '')
-        );
+        return sorted.sort((a, b) => (a.company || '').localeCompare(b.company || ''));
       case 'company-desc':
-        return sorted.sort((a, b) =>
-          (b.company || '').localeCompare(a.company || '')
-        );
+        return sorted.sort((a, b) => (b.company || '').localeCompare(a.company || ''));
       case 'status':
         return sorted.sort((a, b) => {
           const aIndex = STATUS_ORDER.indexOf(a.status);

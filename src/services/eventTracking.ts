@@ -41,9 +41,11 @@ class EventTrackingService {
     // Use crypto.getRandomValues for cryptographically secure randomness
     const array = new Uint32Array(Math.ceil(length / 2));
     crypto.getRandomValues(array);
-    
+
     // Convert to base36 string (0-9, a-z)
-    return Array.from(array, (num) => num.toString(36)).join('').substring(0, length);
+    return Array.from(array, num => num.toString(36))
+      .join('')
+      .substring(0, length);
   }
 
   /**
@@ -95,14 +97,14 @@ class EventTrackingService {
     try {
       const stored = localStorage.getItem(this.storageKey);
       const events: UserEvent[] = stored ? JSON.parse(stored) : [];
-      
+
       events.push(event);
-      
+
       // Keep only last 1000 events in localStorage
       if (events.length > 1000) {
         events.splice(0, events.length - 1000);
       }
-      
+
       localStorage.setItem(this.storageKey, JSON.stringify(events));
     } catch (error) {
       console.warn('Failed to save event to storage:', error);
@@ -126,7 +128,7 @@ class EventTrackingService {
    * Get events by type
    */
   getEventsByType(type: UserEventType): UserEvent[] {
-    return this.getEvents().filter((event) => event.type === type);
+    return this.getEvents().filter(event => event.type === type);
   }
 
   /**
@@ -134,7 +136,7 @@ class EventTrackingService {
    */
   getEventsInRange(startTime: number, endTime: number): UserEvent[] {
     return this.getEvents().filter(
-      (event) => event.timestamp >= startTime && event.timestamp <= endTime
+      event => event.timestamp >= startTime && event.timestamp <= endTime
     );
   }
 
@@ -157,7 +159,7 @@ class EventTrackingService {
     lastEventTime: number | null;
   } {
     const allEvents = this.getEvents();
-    
+
     const eventsByType = allEvents.reduce(
       (acc, event) => {
         acc[event.type] = (acc[event.type] || 0) + 1;
@@ -166,8 +168,8 @@ class EventTrackingService {
       {} as Record<UserEventType, number>
     );
 
-    const timestamps = allEvents.map((e) => e.timestamp);
-    
+    const timestamps = allEvents.map(e => e.timestamp);
+
     return {
       totalEvents: allEvents.length,
       eventsByType,

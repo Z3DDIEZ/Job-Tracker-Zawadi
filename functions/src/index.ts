@@ -15,7 +15,9 @@ import { autoTagApplication } from './automatedTagging';
 export { autoTagApplication };
 
 // Example function for testing
-export const helloWorld = functions.https.onRequest((request: functions.https.Request, response: functions.Response) => {
-  functions.logger.info("Hello logs!", {structuredData: true});
-  response.send("Hello from Firebase!");
-});
+export const helloWorld = functions.https.onRequest(
+  (request: functions.https.Request, response: functions.Response) => {
+    functions.logger.info('Hello logs!', { structuredData: true });
+    response.send('Hello from Firebase!');
+  }
+);

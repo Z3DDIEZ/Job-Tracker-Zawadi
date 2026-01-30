@@ -46,7 +46,13 @@ import {
 import { createApplicationCardSafe } from './utils/domHelpers';
 import { generateDemoData } from './utils/demoData';
 import { exportToCSV } from './utils/exportHelpers';
-import { triggerCSVImport, formatImportResult, ImportError, generateErrorReport, type ImportResult } from './utils/importHelpers';
+import {
+  triggerCSVImport,
+  formatImportResult,
+  ImportError,
+  generateErrorReport,
+  type ImportResult,
+} from './utils/importHelpers';
 import { animationService } from './services/animationService';
 import { authService } from './services/authService';
 import { createLoginForm } from './components/auth/LoginForm';
@@ -68,7 +74,7 @@ function initializeFirebase(): boolean {
     const config = getFirebaseConfig();
 
     // Check if config is valid (not all MISSING)
-    const hasMissingConfig = Object.values(config).some((value) => value === 'MISSING');
+    const hasMissingConfig = Object.values(config).some(value => value === 'MISSING');
 
     if (hasMissingConfig) {
       showFirebaseConfigError();
@@ -160,9 +166,7 @@ const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const statusFilter = document.getElementById('status-filter') as HTMLSelectElement;
 const counterText = document.getElementById('counter-text') as HTMLSpanElement;
-const applicationsContainer = document.getElementById(
-  'applications-container'
-) as HTMLDivElement;
+const applicationsContainer = document.getElementById('applications-container') as HTMLDivElement;
 const analyticsSection = document.getElementById('analytics-section') as HTMLElement;
 const statsGrid = document.getElementById('stats-grid') as HTMLDivElement;
 const chartsContainer = document.getElementById('charts-container') as HTMLDivElement;
@@ -189,7 +193,9 @@ form?.addEventListener('submit', function (event) {
   // Check if user is authenticated first
   const user = authService.getCurrentUser();
   if (!user) {
-    showErrorMessage('Please sign in to save your applications. You can view the form, but saving requires authentication.');
+    showErrorMessage(
+      'Please sign in to save your applications. You can view the form, but saving requires authentication.'
+    );
     return;
   }
 
@@ -209,7 +215,7 @@ form?.addEventListener('submit', function (event) {
     securityLogger.log({
       type: 'validation_failed',
       message: 'Form validation failed',
-      details: { errors: errors.map((e) => e.field) },
+      details: { errors: errors.map(e => e.field) },
     });
     displayValidationErrors(errors);
     return;
@@ -235,19 +241,33 @@ form?.addEventListener('submit', function (event) {
         return;
       }
     }
-    updateApplication(editId, sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship);
+    updateApplication(
+      editId,
+      sanitizedCompany,
+      sanitizedRole,
+      dateApplied,
+      status as ApplicationStatus,
+      visaSponsorship
+    );
   } else {
-    addApplication(sanitizedCompany, sanitizedRole, dateApplied, status as ApplicationStatus, visaSponsorship, tags);
+    addApplication(
+      sanitizedCompany,
+      sanitizedRole,
+      dateApplied,
+      status as ApplicationStatus,
+      visaSponsorship,
+      tags
+    );
   }
 });
 
 function clearValidationErrors(): void {
   const existingErrors = document.querySelectorAll('.validation-error');
-  existingErrors.forEach((error) => error.remove());
+  existingErrors.forEach(error => error.remove());
 }
 
 function displayValidationErrors(errors: Array<{ field: string; message: string }>): void {
-  errors.forEach((error) => {
+  errors.forEach(error => {
     const field = document.getElementById(error.field);
     if (!field) return;
 
@@ -365,7 +385,7 @@ function initializeTagManagement(): void {
   if (!tagInput || !addTagBtn) return;
 
   // Add tag on Enter or comma
-  tagInput.addEventListener('keydown', (e) => {
+  tagInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const tagText = tagInput.value.trim();
@@ -578,8 +598,9 @@ function updateTagSuggestions(): void {
   };
 
   // Get suggestions, excluding already selected tags
-  tagSuggestions = TaggingService.generateTagSuggestions(tempApplication)
-    .filter(suggestion => !selectedTags.some(selected => selected.id === suggestion.tag.id));
+  tagSuggestions = TaggingService.generateTagSuggestions(tempApplication).filter(
+    suggestion => !selectedTags.some(selected => selected.id === suggestion.tag.id)
+  );
 
   renderTagSuggestions();
 }
@@ -651,17 +672,19 @@ function updateApplication(
         });
 
         // Animate status change
-        const statusBadge = document.querySelector(`[data-app-id="${id}"] .status-badge`) as HTMLElement;
+        const statusBadge = document.querySelector(
+          `[data-app-id="${id}"] .status-badge`
+        ) as HTMLElement;
         const card = document.querySelector(`[data-app-id="${id}"]`) as HTMLElement;
         if (statusBadge) {
           // Get status color from CSS or use default
           const statusColors: Record<string, string> = {
-            'Applied': '#dbeafe',
+            Applied: '#dbeafe',
             'Phone Screen': '#fef3c7',
             'Technical Interview': '#fce7f3',
             'Final Round': '#e0e7ff',
-            'Offer': '#d1fae5',
-            'Rejected': '#fee2e2',
+            Offer: '#d1fae5',
+            Rejected: '#fee2e2',
           };
           const newColor = statusColors[status] || '#dbeafe';
           animationService.animateStatusChange(statusBadge, newColor);
@@ -742,8 +765,8 @@ export function deleteApplication(id: string): void {
 
       const confirmed = confirm(
         `Are you sure you want to delete the application for ${escapeHtml(app.company || 'Unknown')}?\n\n` +
-        `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
-        `This action cannot be undone.`
+          `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
+          `This action cannot be undone.`
       );
 
       if (!confirmed) {
@@ -766,9 +789,7 @@ export function deleteApplication(id: string): void {
           });
 
           const onComplete = () => {
-            showSuccessMessage(
-              `Application for ${escapeHtml(app.company || 'Unknown')} deleted`
-            );
+            showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
             CacheManager.invalidate();
           };
 
@@ -929,7 +950,8 @@ export function cancelEdit(): void {
   form.reset();
   if (submitBtn) {
     submitBtn.textContent = 'Add Application';
-    submitBtn.style.background = 'linear-gradient(135deg, var(--slate-900) 0%, var(--slate-950) 100%)';
+    submitBtn.style.background =
+      'linear-gradient(135deg, var(--slate-900) 0%, var(--slate-950) 100%)';
   }
 
   const indicator = document.getElementById('edit-mode-indicator');
@@ -1053,20 +1075,19 @@ function loadApplications(): void {
     }
 
     // Convert to array
-    const applicationsArray: JobApplication[] = Object.keys(applicationsData)
-      .map((key) => {
-        const appData = (applicationsData as Record<string, Partial<JobApplication>>)[key];
-        return {
-          id: key,
-          company: appData?.company || '',
-          role: appData?.role || '',
-          dateApplied: appData?.dateApplied || '',
-          status: (appData?.status || 'Applied') as ApplicationStatus,
-          visaSponsorship: appData?.visaSponsorship || false,
-          timestamp: appData?.timestamp || Date.now(),
-          updatedAt: appData?.updatedAt,
-        } as JobApplication;
-      });
+    const applicationsArray: JobApplication[] = Object.keys(applicationsData).map(key => {
+      const appData = (applicationsData as Record<string, Partial<JobApplication>>)[key];
+      return {
+        id: key,
+        company: appData?.company || '',
+        role: appData?.role || '',
+        dateApplied: appData?.dateApplied || '',
+        status: (appData?.status || 'Applied') as ApplicationStatus,
+        visaSponsorship: appData?.visaSponsorship || false,
+        timestamp: appData?.timestamp || Date.now(),
+        updatedAt: appData?.updatedAt,
+      } as JobApplication;
+    });
 
     setApplications(applicationsArray);
     CacheManager.save(applicationsArray);
@@ -1143,11 +1164,7 @@ function displayApplications(apps: JobApplication[]): void {
   }
 
   // Pagination
-  const pagination = PaginationManager.calculatePagination(
-    apps.length,
-    itemsPerPage,
-    currentPage
-  );
+  const pagination = PaginationManager.calculatePagination(apps.length, itemsPerPage, currentPage);
   const paginatedApps = PaginationManager.getPageItems(apps, pagination);
 
   // Display based on view mode
@@ -1162,7 +1179,7 @@ function displayApplications(apps: JobApplication[]): void {
   } else {
     // Card view (default)
     const cards: HTMLElement[] = [];
-    paginatedApps.forEach((app) => {
+    paginatedApps.forEach(app => {
       const appCard = createApplicationCard(app);
       applicationsContainer.appendChild(appCard);
       cards.push(appCard);
@@ -1183,7 +1200,9 @@ function displayApplications(apps: JobApplication[]): void {
   }
 }
 
-function createPaginationControlsSafe(pagination: ReturnType<typeof PaginationManager.calculatePagination>): HTMLDivElement {
+function createPaginationControlsSafe(
+  pagination: ReturnType<typeof PaginationManager.calculatePagination>
+): HTMLDivElement {
   const container = document.createElement('div');
   container.className = 'pagination-controls';
 
@@ -1202,7 +1221,7 @@ function createPaginationControlsSafe(pagination: ReturnType<typeof PaginationMa
   // Calculate visible page range
   const maxVisible = 5;
   let startPage = Math.max(1, pagination.currentPage - Math.floor(maxVisible / 2));
-  let endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
+  const endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
 
   if (endPage - startPage < maxVisible - 1) {
     startPage = Math.max(1, endPage - maxVisible + 1);
@@ -1291,11 +1310,13 @@ function displayAnalyticsDashboard(apps: JobApplication[]): void {
   displayStatCards(metrics);
 
   // Display charts (Lazy Loaded)
-  import('./components/charts/LazyChartLoader').then(({ renderCharts }) => {
-    if (chartsContainer) {
-      renderCharts(metrics, chartsContainer);
-    }
-  }).catch(err => console.error('Failed to load charts', err));
+  import('./components/charts/LazyChartLoader')
+    .then(({ renderCharts }) => {
+      if (chartsContainer) {
+        renderCharts(metrics, chartsContainer);
+      }
+    })
+    .catch(err => console.error('Failed to load charts', err));
 
   // Show insights if available
   const insights = analyticsService.getInsights(metrics);
@@ -1462,24 +1483,26 @@ function handleImportResult(result: ImportResult): void {
   const formatted = formatImportResult(result);
 
   if (result.imported.length > 0) {
-    saveImportedApplications(result.imported).then(() => {
-      // Success/warning messages are now handled in saveImportedApplications
-      // based on actual imports vs duplicates
+    saveImportedApplications(result.imported)
+      .then(() => {
+        // Success/warning messages are now handled in saveImportedApplications
+        // based on actual imports vs duplicates
 
-      eventTrackingService.track('application_added', {
-        importedCount: result.imported.length,
-        errorCount: result.errors.length,
-        skippedCount: result.skipped,
+        eventTrackingService.track('application_added', {
+          importedCount: result.imported.length,
+          errorCount: result.errors.length,
+          skippedCount: result.skipped,
+        });
+
+        if (result.errors.length > 0) {
+          showImportErrorReport(result.errors);
+        }
+
+        CacheManager.invalidate();
+      })
+      .catch(error => {
+        showErrorMessage(`Failed to save imported applications: ${error.message}`);
       });
-
-      if (result.errors.length > 0) {
-        showImportErrorReport(result.errors);
-      }
-
-      CacheManager.invalidate();
-    }).catch((error) => {
-      showErrorMessage(`Failed to save imported applications: ${error.message}`);
-    });
   } else {
     showErrorMessage(formatted.message);
     if (result.errors.length > 0) {
@@ -1507,27 +1530,28 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
 
   const existingApps: JobApplication[] = existingData
     ? Object.keys(existingData).map(key => {
-      const appData = existingData[key];
-      return {
-        id: key,
-        company: appData?.company || '',
-        role: appData?.role || '',
-        dateApplied: appData?.dateApplied || '',
-        status: (appData?.status || 'Applied') as ApplicationStatus,
-        visaSponsorship: appData?.visaSponsorship || false,
-        timestamp: appData?.timestamp || Date.now(),
-        updatedAt: appData?.updatedAt,
-        tags: appData?.tags,
-      } as JobApplication;
-    })
+        const appData = existingData[key];
+        return {
+          id: key,
+          company: appData?.company || '',
+          role: appData?.role || '',
+          dateApplied: appData?.dateApplied || '',
+          status: (appData?.status || 'Applied') as ApplicationStatus,
+          visaSponsorship: appData?.visaSponsorship || false,
+          timestamp: appData?.timestamp || Date.now(),
+          updatedAt: appData?.updatedAt,
+          tags: appData?.tags,
+        } as JobApplication;
+      })
     : [];
 
   // Filter out duplicates based on company, role, and dateApplied
   const newApplications = applications.filter(app => {
-    const isDuplicate = existingApps.some(existing =>
-      existing.company.toLowerCase().trim() === app.company.toLowerCase().trim() &&
-      existing.role.toLowerCase().trim() === app.role.toLowerCase().trim() &&
-      existing.dateApplied === app.dateApplied
+    const isDuplicate = existingApps.some(
+      existing =>
+        existing.company.toLowerCase().trim() === app.company.toLowerCase().trim() &&
+        existing.role.toLowerCase().trim() === app.role.toLowerCase().trim() &&
+        existing.dateApplied === app.dateApplied
     );
     return !isDuplicate;
   });
@@ -1546,7 +1570,7 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
   }
 
   // Save only the new applications
-  const savePromises = newApplications.map((app) => {
+  const savePromises = newApplications.map(app => {
     const newRef = applicationsRef.push();
     const appData = {
       ...app,
@@ -1565,7 +1589,6 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
     );
   }
 }
-
 
 function showImportErrorReport(errors: ImportError[]): void {
   const errorReport = generateErrorReport(errors);
@@ -1617,7 +1640,7 @@ function showImportErrorReport(errors: ImportError[]): void {
   modal.appendChild(content);
   document.body.appendChild(modal);
 
-  modal.addEventListener('click', (e) => {
+  modal.addEventListener('click', e => {
     if (e.target === modal) modal.remove();
   });
 }
@@ -1642,7 +1665,7 @@ function displayInsights(insights: string[]): void {
   const list = document.createElement('ul');
   list.className = 'insights-list';
 
-  insights.forEach((insight) => {
+  insights.forEach(insight => {
     const li = document.createElement('li');
     li.textContent = insight; // Safe - insights come from our service, not user input
     list.appendChild(li);
@@ -1680,19 +1703,17 @@ function displayStatCards(metrics: ReturnType<typeof analyticsService.calculateM
     }),
   ];
 
-  statCards.forEach((card) => statsGrid.appendChild(card));
+  statCards.forEach(card => statsGrid.appendChild(card));
 }
 
-
-
-
-
-function attachPaginationListeners(pagination: ReturnType<typeof PaginationManager.calculatePagination>): void {
+function attachPaginationListeners(
+  pagination: ReturnType<typeof PaginationManager.calculatePagination>
+): void {
   const pageButtons = document.querySelectorAll('.page-btn[data-page]');
   const prevButton = document.querySelector('.page-btn[data-action="prev"]');
   const nextButton = document.querySelector('.page-btn[data-action="next"]');
 
-  pageButtons.forEach((btn) => {
+  pageButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const page = parseInt((btn as HTMLElement).dataset.page || '1');
       currentPage = page;
@@ -1721,7 +1742,7 @@ export function switchViewMode(mode: ViewMode): void {
   currentPage = 1; // Reset to first page
 
   // Update button states
-  document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
     btn.classList.remove('active');
     if ((btn as HTMLElement).dataset.view === mode) {
       btn.classList.add('active');
@@ -1737,11 +1758,10 @@ export function switchViewMode(mode: ViewMode): void {
 
     // Animate transition to analytics view
     if (previousMode !== 'analytics') {
-      animationService.transitionView(
-        applicationsSectionElement || null,
-        analyticsSection,
-        { duration: 300, direction: 'horizontal' }
-      );
+      animationService.transitionView(applicationsSectionElement || null, analyticsSection, {
+        duration: 300,
+        direction: 'horizontal',
+      });
     }
 
     if (analyticsSection) analyticsSection.style.display = 'block';
@@ -1755,11 +1775,10 @@ export function switchViewMode(mode: ViewMode): void {
   } else {
     // Animate transition to cards/table view
     if (previousMode === 'analytics') {
-      animationService.transitionView(
-        analyticsSection,
-        applicationsSectionElement || null,
-        { duration: 300, direction: 'horizontal' }
-      );
+      animationService.transitionView(analyticsSection, applicationsSectionElement || null, {
+        duration: 300,
+        direction: 'horizontal',
+      });
     }
 
     if (analyticsSection) analyticsSection.style.display = 'none';
@@ -1822,7 +1841,7 @@ function createApplicationCard(app: JobApplication): HTMLDivElement {
 // ========================================
 
 if (searchInput) {
-  searchInput.addEventListener('input', (e) => {
+  searchInput.addEventListener('input', e => {
     const target = e.target as HTMLInputElement;
     updateFilter('search', target.value);
     if (target.value.length > 0) {
@@ -1833,7 +1852,7 @@ if (searchInput) {
 }
 
 if (statusFilter) {
-  statusFilter.addEventListener('change', (e) => {
+  statusFilter.addEventListener('change', e => {
     const target = e.target as HTMLSelectElement;
     updateFilter('status', target.value as ApplicationStatus | 'all');
     eventTrackingService.track('filter_applied', {
@@ -1876,7 +1895,7 @@ function initializeTagFiltering(): void {
   populateTagFilterDropdown();
 
   // Handle tag selection
-  tagFilterSelect.addEventListener('change', (e) => {
+  tagFilterSelect.addEventListener('change', e => {
     const selectedTagId = (e.target as HTMLSelectElement).value;
     if (selectedTagId) {
       addTagFilter(selectedTagId);
@@ -1932,7 +1951,10 @@ function removeTagFilter(tagId: string): void {
   const currentFilters = filters.get();
   const tagIds = (currentFilters.tags || []) as string[];
 
-  updateFilter('tags', tagIds.filter(id => id !== tagId));
+  updateFilter(
+    'tags',
+    tagIds.filter(id => id !== tagId)
+  );
   renderActiveTagFilters();
 }
 
@@ -2094,42 +2116,43 @@ function updateAuthUI(): void {
     // User is not authenticated - show login/signup
     authContainer.innerHTML = '';
     authContainer.classList.add('is-modal'); // Switch to modal mode
-    const form = currentAuthView === 'login'
-      ? createLoginForm({
-        onSuccess: () => {
-          // Auth state change will update UI automatically
-        },
-        onSwitchToSignUp: () => {
-          currentAuthView = 'signup';
-          updateAuthUI();
-        },
+    const form =
+      currentAuthView === 'login'
+        ? createLoginForm({
+            onSuccess: () => {
+              // Auth state change will update UI automatically
+            },
+            onSwitchToSignUp: () => {
+              currentAuthView = 'signup';
+              updateAuthUI();
+            },
 
-        onContinueAsGuest: () => {
-          console.log('👤 Continuing as Guest');
-          // Generate demo data if empty
-          const currentApps = applications.get();
-          if (currentApps.length === 0) {
-            const demoApps = generateDemoData(100);
-            setApplications(demoApps);
-            CacheManager.save(demoApps);
-            console.log('🎉 Demo data generated');
-            showSuccessMessage('Demo data loaded! You are in Guest Mode.');
-          } else {
-            showInfoMessage('Welcome back! You are in Guest Mode.');
-          }
+            onContinueAsGuest: () => {
+              console.log('👤 Continuing as Guest');
+              // Generate demo data if empty
+              const currentApps = applications.get();
+              if (currentApps.length === 0) {
+                const demoApps = generateDemoData(100);
+                setApplications(demoApps);
+                CacheManager.save(demoApps);
+                console.log('🎉 Demo data generated');
+                showSuccessMessage('Demo data loaded! You are in Guest Mode.');
+              } else {
+                showInfoMessage('Welcome back! You are in Guest Mode.');
+              }
 
-          // Hide Auth UI and switch to Guest Header
-          if (authContainer) {
-            authContainer.innerHTML = '';
-            authContainer.classList.remove('is-modal'); // Remove modal overlay
+              // Hide Auth UI and switch to Guest Header
+              if (authContainer) {
+                authContainer.innerHTML = '';
+                authContainer.classList.remove('is-modal'); // Remove modal overlay
 
-            // Render Guest Header with Exit button
-            const guestHeader = document.createElement('div');
-            guestHeader.style.display = 'flex';
-            guestHeader.style.gap = '1rem';
-            guestHeader.style.alignItems = 'center';
+                // Render Guest Header with Exit button
+                const guestHeader = document.createElement('div');
+                guestHeader.style.display = 'flex';
+                guestHeader.style.gap = '1rem';
+                guestHeader.style.alignItems = 'center';
 
-            guestHeader.innerHTML = `
+                guestHeader.innerHTML = `
               <div style="display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #e2e8f0;">
                 <span style="font-size: 1.2rem;">👤</span>
                 <span style="font-size: 0.875rem; font-weight: 600; color: #475569;">Guest Mode</span>
@@ -2139,41 +2162,41 @@ function updateAuthUI(): void {
               </button>
             `;
 
-            authContainer.appendChild(guestHeader);
+                authContainer.appendChild(guestHeader);
 
-            // Add Exit Listener
-            document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
-              window.location.reload();
-            });
-          }
+                // Add Exit Listener
+                document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
+                  window.location.reload();
+                });
+              }
 
-          // Enable app (read-only mostly, but allow interaction)
-          updateFormAuthState(null); // Guest is null user
+              // Enable app (read-only mostly, but allow interaction)
+              updateFormAuthState(null); // Guest is null user
 
-          // In guest mode, we want to allow form interaction but maybe warn on save?
-          // For now, let's just enable the UI so they can see data.
-          // Override form disabled state for guest viewing
-          const form = document.getElementById('application-form') as HTMLFormElement;
-          const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-          if (form && submitBtn) {
-            form.classList.remove('form-disabled');
-            form.style.opacity = '1';
-            form.style.pointerEvents = 'auto';
-            submitBtn.textContent = 'Sign In to Save';
-          }
+              // In guest mode, we want to allow form interaction but maybe warn on save?
+              // For now, let's just enable the UI so they can see data.
+              // Override form disabled state for guest viewing
+              const form = document.getElementById('application-form') as HTMLFormElement;
+              const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+              if (form && submitBtn) {
+                form.classList.remove('form-disabled');
+                form.style.opacity = '1';
+                form.style.pointerEvents = 'auto';
+                submitBtn.textContent = 'Sign In to Save';
+              }
 
-          processAndDisplayApplications();
-        }
-      })
-      : createSignUpForm({
-        onSuccess: () => {
-          // Auth state change will update UI automatically
-        },
-        onSwitchToLogin: () => {
-          currentAuthView = 'login';
-          updateAuthUI();
-        },
-      });
+              processAndDisplayApplications();
+            },
+          })
+        : createSignUpForm({
+            onSuccess: () => {
+              // Auth state change will update UI automatically
+            },
+            onSwitchToLogin: () => {
+              currentAuthView = 'login';
+              updateAuthUI();
+            },
+          });
 
     authContainer.appendChild(form);
     animationService.animateCardEntrance([form]);
@@ -2233,7 +2256,7 @@ function handleSignOut(): void {
  */
 function initializeAuth(): void {
   // Listen for auth state changes
-  authService.onAuthStateChanged((user) => {
+  authService.onAuthStateChanged(user => {
     if (user) {
       console.log('✅ User authenticated:', user.email);
       // User is signed in - load their applications
@@ -2244,7 +2267,8 @@ function initializeAuth(): void {
       setApplications([]);
       setFilteredApplications([]);
       if (applicationsContainer) {
-        applicationsContainer.innerHTML = '<p class="empty-state">Sign in to view and manage your applications.</p>';
+        applicationsContainer.innerHTML =
+          '<p class="empty-state">Sign in to view and manage your applications.</p>';
       }
       updateCounter(0, 0);
     }
@@ -2287,7 +2311,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize view mode buttons
-  document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const mode = (btn as HTMLElement).dataset.view as ViewMode;
       if (mode) {
@@ -2307,7 +2331,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Add form field focus animations
   const formFields = form?.querySelectorAll('input, select, textarea');
-  formFields?.forEach((field) => {
+  formFields?.forEach(field => {
     field.addEventListener('focus', () => {
       animationService.animateFormFieldFocus(field as HTMLElement);
     });
@@ -2322,21 +2346,21 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   if (dateRangeFilter) {
-    dateRangeFilter.addEventListener('change', (e) => {
+    dateRangeFilter.addEventListener('change', e => {
       const target = e.target as HTMLSelectElement;
       handleDateRangeChange(target.value);
     });
   }
 
   if (visaFilter) {
-    visaFilter.addEventListener('change', (e) => {
+    visaFilter.addEventListener('change', e => {
       const target = e.target as HTMLSelectElement;
       handleVisaFilterChange(target.value);
     });
   }
 
   if (sortSelect) {
-    sortSelect.addEventListener('change', (e) => {
+    sortSelect.addEventListener('change', e => {
       const target = e.target as HTMLSelectElement;
       handleSortChange(target.value);
     });
@@ -2350,11 +2374,14 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Event delegation for table actions (handles dynamically created buttons)
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', e => {
     const target = e.target as HTMLElement;
 
     // Handle table row actions
-    if (target.classList.contains('btn-edit-small') || target.classList.contains('btn-delete-small')) {
+    if (
+      target.classList.contains('btn-edit-small') ||
+      target.classList.contains('btn-delete-small')
+    ) {
       const action = target.dataset.action;
       const appId = target.dataset.appId;
 
@@ -2376,15 +2403,18 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Make functions globally accessible for inline handlers
-(window as Window & typeof globalThis & {
-  editApplication: typeof editApplication;
-  deleteApplication: typeof deleteApplication;
-  cancelEdit: typeof cancelEdit;
-  clearAllFilters: typeof clearAllFilters;
-  handleDateRangeChange: typeof handleDateRangeChange;
-  handleVisaFilterChange: typeof handleVisaFilterChange;
-  handleSortChange: typeof handleSortChange;
-}).editApplication = editApplication;
+(
+  window as Window &
+    typeof globalThis & {
+      editApplication: typeof editApplication;
+      deleteApplication: typeof deleteApplication;
+      cancelEdit: typeof cancelEdit;
+      clearAllFilters: typeof clearAllFilters;
+      handleDateRangeChange: typeof handleDateRangeChange;
+      handleVisaFilterChange: typeof handleVisaFilterChange;
+      handleSortChange: typeof handleSortChange;
+    }
+).editApplication = editApplication;
 (window as any).deleteApplication = deleteApplication;
 (window as any).cancelEdit = cancelEdit;
 (window as any).clearAllFilters = clearAllFilters;

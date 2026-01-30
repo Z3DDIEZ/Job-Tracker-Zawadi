@@ -3,11 +3,7 @@
  * Calculates metrics and insights from application data
  */
 
-import type {
-  JobApplication,
-  ApplicationStatus,
-  AnalyticsMetrics,
-} from '@/types';
+import type { JobApplication, ApplicationStatus, AnalyticsMetrics } from '@/types';
 
 export class AnalyticsService {
   /**
@@ -58,7 +54,7 @@ export class AnalyticsService {
       Rejected: 0,
     };
 
-    applications.forEach((app) => {
+    applications.forEach(app => {
       if (app.status && distribution[app.status] !== undefined) {
         distribution[app.status] = (distribution[app.status] || 0) + 1;
       }
@@ -73,7 +69,7 @@ export class AnalyticsService {
   private calculateSuccessRate(applications: JobApplication[]): number {
     if (applications.length === 0) return 0;
 
-    const offers = applications.filter((app) => app.status === 'Offer').length;
+    const offers = applications.filter(app => app.status === 'Offer').length;
     return Math.round((offers / applications.length) * 100 * 10) / 10; // 1 decimal place
   }
 
@@ -83,9 +79,7 @@ export class AnalyticsService {
   private calculateResponseRate(applications: JobApplication[]): number {
     if (applications.length === 0) return 0;
 
-    const responded = applications.filter(
-      (app) => app.status !== 'Applied'
-    ).length;
+    const responded = applications.filter(app => app.status !== 'Applied').length;
     return Math.round((responded / applications.length) * 100 * 10) / 10;
   }
 
@@ -107,14 +101,12 @@ export class AnalyticsService {
     const statusCounts: Record<string, number> = { ...averages };
     const statusTotals: Record<string, number> = { ...averages };
 
-    applications.forEach((app) => {
+    applications.forEach(app => {
       if (!app.dateApplied || !app.timestamp) return;
 
       const appliedDate = new Date(app.dateApplied).getTime();
       const currentTime = app.updatedAt || app.timestamp;
-      const daysSinceApplied = Math.floor(
-        (currentTime - appliedDate) / (1000 * 60 * 60 * 24)
-      );
+      const daysSinceApplied = Math.floor((currentTime - appliedDate) / (1000 * 60 * 60 * 24));
 
       if (app.status && statusCounts[app.status] !== undefined) {
         const status = app.status;
@@ -124,7 +116,7 @@ export class AnalyticsService {
     });
 
     // Calculate averages
-    Object.keys(averages).forEach((status) => {
+    Object.keys(averages).forEach(status => {
       const count = statusCounts[status] || 0;
       const total = statusTotals[status] || 0;
       if (count > 0) {
@@ -143,7 +135,7 @@ export class AnalyticsService {
   ): Array<{ week: string; count: number }> {
     const weeklyData: Record<string, number> = {};
 
-    applications.forEach((app) => {
+    applications.forEach(app => {
       if (!app.dateApplied) return;
 
       const date = new Date(app.dateApplied);
@@ -178,16 +170,13 @@ export class AnalyticsService {
       'Offer',
     ];
 
-    const funnel: Array<{ stage: string; count: number; conversionRate: number }> =
-      [];
+    const funnel: Array<{ stage: string; count: number; conversionRate: number }> = [];
     let previousCount = applications.length;
 
-    stages.forEach((stage) => {
-      const count = applications.filter((app) => app.status === stage).length;
+    stages.forEach(stage => {
+      const count = applications.filter(app => app.status === stage).length;
       const conversionRate =
-        previousCount > 0
-          ? Math.round((count / previousCount) * 100 * 10) / 10
-          : 0;
+        previousCount > 0 ? Math.round((count / previousCount) * 100 * 10) / 10 : 0;
 
       funnel.push({
         stage: stage as string,
@@ -263,20 +252,24 @@ export class AnalyticsService {
       'Offer',
     ];
 
-    const dropOffs: Array<{ fromStage: string; toStage: string; dropOffRate: number; count: number }> = [];
+    const dropOffs: Array<{
+      fromStage: string;
+      toStage: string;
+      dropOffRate: number;
+      count: number;
+    }> = [];
 
     for (let i = 0; i < stages.length - 1; i++) {
       const fromStage = stages[i];
       const toStage = stages[i + 1];
-      
+
       if (!fromStage || !toStage) continue;
 
-      const fromCount = applications.filter((app) => app.status === fromStage).length;
-      const toCount = applications.filter((app) => app.status === toStage).length;
-      
-      const dropOffRate = fromCount > 0 
-        ? Math.round(((fromCount - toCount) / fromCount) * 100 * 10) / 10
-        : 0;
+      const fromCount = applications.filter(app => app.status === fromStage).length;
+      const toCount = applications.filter(app => app.status === toStage).length;
+
+      const dropOffRate =
+        fromCount > 0 ? Math.round(((fromCount - toCount) / fromCount) * 100 * 10) / 10 : 0;
 
       dropOffs.push({
         fromStage,
@@ -301,7 +294,7 @@ export class AnalyticsService {
 
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    applications.forEach((app) => {
+    applications.forEach(app => {
       if (!app.dateApplied) return;
 
       const date = new Date(app.dateApplied);
@@ -358,35 +351,37 @@ export class AnalyticsService {
     withVisa: { total: number; offers: number; successRate: number; responseRate: number };
     withoutVisa: { total: number; offers: number; successRate: number; responseRate: number };
   } {
-    const withVisa = applications.filter((app) => app.visaSponsorship === true);
-    const withoutVisa = applications.filter((app) => app.visaSponsorship === false);
+    const withVisa = applications.filter(app => app.visaSponsorship === true);
+    const withoutVisa = applications.filter(app => app.visaSponsorship === false);
 
-    const withVisaOffers = withVisa.filter((app) => app.status === 'Offer').length;
-    const withoutVisaOffers = withoutVisa.filter((app) => app.status === 'Offer').length;
+    const withVisaOffers = withVisa.filter(app => app.status === 'Offer').length;
+    const withoutVisaOffers = withoutVisa.filter(app => app.status === 'Offer').length;
 
-    const withVisaResponses = withVisa.filter((app) => app.status !== 'Applied').length;
-    const withoutVisaResponses = withoutVisa.filter((app) => app.status !== 'Applied').length;
+    const withVisaResponses = withVisa.filter(app => app.status !== 'Applied').length;
+    const withoutVisaResponses = withoutVisa.filter(app => app.status !== 'Applied').length;
 
     return {
       withVisa: {
         total: withVisa.length,
         offers: withVisaOffers,
-        successRate: withVisa.length > 0 
-          ? Math.round((withVisaOffers / withVisa.length) * 100 * 10) / 10 
-          : 0,
-        responseRate: withVisa.length > 0 
-          ? Math.round((withVisaResponses / withVisa.length) * 100 * 10) / 10 
-          : 0,
+        successRate:
+          withVisa.length > 0 ? Math.round((withVisaOffers / withVisa.length) * 100 * 10) / 10 : 0,
+        responseRate:
+          withVisa.length > 0
+            ? Math.round((withVisaResponses / withVisa.length) * 100 * 10) / 10
+            : 0,
       },
       withoutVisa: {
         total: withoutVisa.length,
         offers: withoutVisaOffers,
-        successRate: withoutVisa.length > 0 
-          ? Math.round((withoutVisaOffers / withoutVisa.length) * 100 * 10) / 10 
-          : 0,
-        responseRate: withoutVisa.length > 0 
-          ? Math.round((withoutVisaResponses / withoutVisa.length) * 100 * 10) / 10 
-          : 0,
+        successRate:
+          withoutVisa.length > 0
+            ? Math.round((withoutVisaOffers / withoutVisa.length) * 100 * 10) / 10
+            : 0,
+        responseRate:
+          withoutVisa.length > 0
+            ? Math.round((withoutVisaResponses / withoutVisa.length) * 100 * 10) / 10
+            : 0,
       },
     };
   }
@@ -412,14 +407,20 @@ export class AnalyticsService {
       insights.push(
         `📈 Your success rate is ${metrics.successRate}%. Consider refining your application strategy.`
       );
-      recommendations.push('💡 Action: Review successful applications to identify patterns in company size, role type, or application timing.');
+      recommendations.push(
+        '💡 Action: Review successful applications to identify patterns in company size, role type, or application timing.'
+      );
     } else if (metrics.successRate > 0) {
       insights.push(
         `💪 Your success rate is ${metrics.successRate}%. Keep applying and improving!`
       );
-      recommendations.push('💡 Action: Focus on quality over quantity. Tailor each application to the specific role and company.');
+      recommendations.push(
+        '💡 Action: Focus on quality over quantity. Tailor each application to the specific role and company.'
+      );
     } else {
-      recommendations.push('💡 Action: Consider getting feedback on your resume and cover letter. Practice common interview questions.');
+      recommendations.push(
+        '💡 Action: Consider getting feedback on your resume and cover letter. Practice common interview questions.'
+      );
     }
 
     // Response rate insights
@@ -427,7 +428,9 @@ export class AnalyticsService {
       insights.push(
         `📧 Response rate is ${metrics.responseRate}%. Consider tailoring your applications more.`
       );
-      recommendations.push('💡 Action: Customize your resume and cover letter for each application. Highlight relevant experience and keywords from the job description.');
+      recommendations.push(
+        '💡 Action: Customize your resume and cover letter for each application. Highlight relevant experience and keywords from the job description.'
+      );
     } else if (metrics.responseRate > 70) {
       insights.push(
         `✅ Strong response rate of ${metrics.responseRate}%! Your applications are getting noticed.`
@@ -440,37 +443,48 @@ export class AnalyticsService {
       const avgRecent = recentWeeks.reduce((sum, w) => sum + w.count, 0) / recentWeeks.length;
       if (avgRecent < 2) {
         insights.push('⚡ Consider increasing your application velocity for better results.');
-        recommendations.push('💡 Action: Aim for 5-10 quality applications per week. Set aside dedicated time each day for job searching.');
+        recommendations.push(
+          '💡 Action: Aim for 5-10 quality applications per week. Set aside dedicated time each day for job searching.'
+        );
       } else if (avgRecent > 10) {
-        insights.push(`🚀 High application velocity (${avgRecent.toFixed(1)} per week)! Maintain quality while keeping momentum.`);
+        insights.push(
+          `🚀 High application velocity (${avgRecent.toFixed(1)} per week)! Maintain quality while keeping momentum.`
+        );
       }
     }
 
     // Funnel insights
     if (metrics.funnelData && metrics.funnelData.length > 0) {
       const stages = metrics.funnelData;
-      
+
       // Check for drop-off points
       for (let i = 1; i < stages.length; i++) {
         const prevStage = stages[i - 1];
         const currentStage = stages[i];
-        
+
         if (!prevStage || !currentStage) continue;
-        
-        const dropOffRate = prevStage.count > 0 
-          ? ((prevStage.count - currentStage.count) / prevStage.count) * 100 
-          : 0;
-        
+
+        const dropOffRate =
+          prevStage.count > 0
+            ? ((prevStage.count - currentStage.count) / prevStage.count) * 100
+            : 0;
+
         if (dropOffRate > 70 && prevStage.count > 3) {
           insights.push(
             `⚠️ High drop-off at ${prevStage.stage} → ${currentStage.stage} (${dropOffRate.toFixed(0)}% drop-off).`
           );
           if (currentStage.stage === 'Phone Screen') {
-            recommendations.push('💡 Action: Practice phone interview skills. Prepare answers to common questions and have questions ready for the interviewer.');
+            recommendations.push(
+              '💡 Action: Practice phone interview skills. Prepare answers to common questions and have questions ready for the interviewer.'
+            );
           } else if (currentStage.stage === 'Technical Interview') {
-            recommendations.push('💡 Action: Focus on technical interview preparation. Practice coding problems and system design questions relevant to your field.');
+            recommendations.push(
+              '💡 Action: Focus on technical interview preparation. Practice coding problems and system design questions relevant to your field.'
+            );
           } else if (currentStage.stage === 'Final Round') {
-            recommendations.push('💡 Action: Prepare for final round interviews by researching the company culture, preparing behavioral questions, and demonstrating enthusiasm.');
+            recommendations.push(
+              '💡 Action: Prepare for final round interviews by researching the company culture, preparing behavioral questions, and demonstrating enthusiasm.'
+            );
           }
         }
       }
@@ -481,11 +495,15 @@ export class AnalyticsService {
         const appliedCount = firstStage.count || 0;
         const offerCount = lastStage.count || 0;
         if (appliedCount > 0 && offerCount === 0) {
-          insights.push('🎯 Focus on improving interview performance to convert applications to offers.');
+          insights.push(
+            '🎯 Focus on improving interview performance to convert applications to offers.'
+          );
         } else if (offerCount > 0) {
           const conversionRate = (offerCount / appliedCount) * 100;
           if (conversionRate > 10) {
-            insights.push(`✅ Strong conversion rate: ${conversionRate.toFixed(1)}% of applications resulted in offers!`);
+            insights.push(
+              `✅ Strong conversion rate: ${conversionRate.toFixed(1)}% of applications resulted in offers!`
+            );
           }
         }
       }
@@ -505,17 +523,19 @@ export class AnalyticsService {
           insights.push(
             `⏱️ Applications spend an average of ${longestDays} days in "${longestStatus}". Consider following up if appropriate.`
           );
-          recommendations.push('💡 Action: Set reminders to follow up on applications after 2 weeks of no response.');
+          recommendations.push(
+            '💡 Action: Set reminders to follow up on applications after 2 weeks of no response.'
+          );
         }
       }
     }
 
     // Behavioral analytics insights
     if (metrics.dropOffAnalysis && metrics.dropOffAnalysis.length > 0) {
-      const highestDropOff = metrics.dropOffAnalysis.reduce((max, current) => 
+      const highestDropOff = metrics.dropOffAnalysis.reduce((max, current) =>
         current.dropOffRate > max.dropOffRate ? current : max
       );
-      
+
       if (highestDropOff.dropOffRate > 50) {
         insights.push(
           `📉 Highest drop-off: ${highestDropOff.fromStage} → ${highestDropOff.toStage} (${highestDropOff.dropOffRate}% drop-off rate)`
@@ -526,12 +546,12 @@ export class AnalyticsService {
     // Timing insights
     if (metrics.timingAnalysis) {
       const { byDayOfWeek, byWeekOfMonth } = metrics.timingAnalysis;
-      
+
       // Find best day of week
       const bestDay = Object.entries(byDayOfWeek)
         .filter(([_, data]) => data.count >= 3) // Need at least 3 applications for meaningful data
         .sort(([_, a], [__, b]) => b.successRate - a.successRate)[0];
-      
+
       if (bestDay) {
         const [day, data] = bestDay;
         insights.push(
@@ -543,7 +563,7 @@ export class AnalyticsService {
       const bestWeek = Object.entries(byWeekOfMonth)
         .filter(([_, data]) => data.count >= 3)
         .sort(([_, a], [__, b]) => b.successRate - a.successRate)[0];
-      
+
       if (bestWeek) {
         const [week, data] = bestWeek;
         insights.push(
@@ -555,10 +575,10 @@ export class AnalyticsService {
     // Visa sponsorship insights
     if (metrics.visaImpact) {
       const { withVisa, withoutVisa } = metrics.visaImpact;
-      
+
       if (withVisa.total > 0 && withoutVisa.total > 0) {
         const visaAdvantage = withVisa.successRate - withoutVisa.successRate;
-        
+
         if (Math.abs(visaAdvantage) > 5) {
           if (visaAdvantage > 0) {
             insights.push(

@@ -19,17 +19,10 @@ export function exportToCSV(
   }
 
   // CSV Headers
-  const headers = [
-    'Company',
-    'Role',
-    'Date Applied',
-    'Status',
-    'Visa Sponsorship',
-    'Timestamp',
-  ];
+  const headers = ['Company', 'Role', 'Date Applied', 'Status', 'Visa Sponsorship', 'Timestamp'];
 
   // Convert applications to CSV rows
-  const rows = applications.map((app) => {
+  const rows = applications.map(app => {
     return [
       escapeCSVField(app.company || ''),
       escapeCSVField(app.role || ''),
@@ -41,10 +34,7 @@ export function exportToCSV(
   });
 
   // Combine headers and rows
-  const csvContent = [
-    headers.join(','),
-    ...rows.map((row) => row.join(',')),
-  ].join('\n');
+  const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
 
   // Create blob and download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -73,10 +63,7 @@ function escapeCSVField(field: string): string {
 /**
  * Export chart as PNG image
  */
-export function exportChartAsPNG(
-  chart: Chart | null,
-  filename: string = 'chart.png'
-): void {
+export function exportChartAsPNG(chart: Chart | null, filename: string = 'chart.png'): void {
   if (!chart) {
     alert('Chart not available for export');
     return;

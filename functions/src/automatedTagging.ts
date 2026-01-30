@@ -40,7 +40,7 @@ interface JobApplication {
  * Predefined tag database (simplified version for Cloud Functions)
  */
 const TAG_DATABASE: Record<string, Tag[]> = {
-  'industry': [
+  industry: [
     { id: 'tech', name: 'Technology', category: 'industry', color: '#3b82f6' },
     { id: 'finance', name: 'Finance', category: 'industry', color: '#10b981' },
     { id: 'healthcare', name: 'Healthcare', category: 'industry', color: '#f59e0b' },
@@ -62,12 +62,12 @@ const TAG_DATABASE: Record<string, Tag[]> = {
     { id: 'medium', name: 'Medium (51-500)', category: 'company-size', color: '#f59e0b' },
     { id: 'large', name: 'Large (500+)', category: 'company-size', color: '#8b5cf6' },
   ],
-  'location': [
+  location: [
     { id: 'remote', name: 'Remote', category: 'location', color: '#3b82f6' },
     { id: 'hybrid', name: 'Hybrid', category: 'location', color: '#10b981' },
     { id: 'onsite', name: 'On-site', category: 'location', color: '#f59e0b' },
   ],
-  'seniority': [
+  seniority: [
     { id: 'junior', name: 'Junior', category: 'seniority', color: '#3b82f6' },
     { id: 'mid', name: 'Mid-Level', category: 'seniority', color: '#10b981' },
     { id: 'senior', name: 'Senior', category: 'seniority', color: '#f59e0b' },
@@ -79,34 +79,91 @@ const TAG_DATABASE: Record<string, Tag[]> = {
  * Industry keywords mapping
  */
 const INDUSTRY_KEYWORDS: Record<string, string[]> = {
-  'tech': ['google', 'microsoft', 'amazon', 'apple', 'facebook', 'meta', 'netflix', 'uber', 'airbnb', 'spotify', 'slack', 'zoom', 'stripe', 'shopify'],
-  'finance': ['jpmorgan', 'goldman', 'morgan stanley', 'blackrock', 'fidelity', 'wells fargo', 'bank of america', 'paypal', 'coinbase'],
-  'healthcare': ['unitedhealth', 'anthem', 'cvs', 'pfizer', 'johnson & johnson', 'merck', 'thermo fisher'],
-  'education': ['coursera', 'udacity', 'udemy', 'khan academy', 'duolingo', 'chegg'],
-  'retail': ['walmart', 'amazon retail', 'target', 'costco', 'home depot', 'best buy'],
-  'consulting': ['mckinsey', 'bain', 'bcg', 'deloitte', 'ey', 'kpmg', 'pwc', 'accenture'],
+  tech: [
+    'google',
+    'microsoft',
+    'amazon',
+    'apple',
+    'facebook',
+    'meta',
+    'netflix',
+    'uber',
+    'airbnb',
+    'spotify',
+    'slack',
+    'zoom',
+    'stripe',
+    'shopify',
+  ],
+  finance: [
+    'jpmorgan',
+    'goldman',
+    'morgan stanley',
+    'blackrock',
+    'fidelity',
+    'wells fargo',
+    'bank of america',
+    'paypal',
+    'coinbase',
+  ],
+  healthcare: [
+    'unitedhealth',
+    'anthem',
+    'cvs',
+    'pfizer',
+    'johnson & johnson',
+    'merck',
+    'thermo fisher',
+  ],
+  education: ['coursera', 'udacity', 'udemy', 'khan academy', 'duolingo', 'chegg'],
+  retail: ['walmart', 'amazon retail', 'target', 'costco', 'home depot', 'best buy'],
+  consulting: ['mckinsey', 'bain', 'bcg', 'deloitte', 'ey', 'kpmg', 'pwc', 'accenture'],
 };
 
 /**
  * Role keywords mapping
  */
 const ROLE_KEYWORDS: Record<string, string[]> = {
-  'frontend': ['frontend', 'front-end', 'ui', 'ux', 'react', 'angular', 'vue', 'javascript', 'typescript', 'html', 'css'],
-  'backend': ['backend', 'back-end', 'server', 'api', 'node', 'python', 'java', 'c#', 'go', 'ruby', 'php'],
-  'fullstack': ['fullstack', 'full-stack', 'full stack'],
-  'devops': ['devops', 'sre', 'infrastructure', 'aws', 'azure', 'gcp', 'docker', 'kubernetes'],
-  'data': ['data scientist', 'data engineer', 'machine learning', 'ml', 'ai', 'analytics'],
-  'mobile': ['ios', 'android', 'mobile', 'react native', 'flutter', 'swift', 'kotlin'],
+  frontend: [
+    'frontend',
+    'front-end',
+    'ui',
+    'ux',
+    'react',
+    'angular',
+    'vue',
+    'javascript',
+    'typescript',
+    'html',
+    'css',
+  ],
+  backend: [
+    'backend',
+    'back-end',
+    'server',
+    'api',
+    'node',
+    'python',
+    'java',
+    'c#',
+    'go',
+    'ruby',
+    'php',
+  ],
+  fullstack: ['fullstack', 'full-stack', 'full stack'],
+  devops: ['devops', 'sre', 'infrastructure', 'aws', 'azure', 'gcp', 'docker', 'kubernetes'],
+  data: ['data scientist', 'data engineer', 'machine learning', 'ml', 'ai', 'analytics'],
+  mobile: ['ios', 'android', 'mobile', 'react native', 'flutter', 'swift', 'kotlin'],
 };
 
 /**
  * Seniority keywords mapping
  */
 const SENIORITY_KEYWORDS: Record<string, string[]> = {
-  'junior': ['junior', 'jr', 'entry level', 'graduate', 'new grad'],
-  'mid': ['mid', 'intermediate', '3-5 years'],
-  'senior': ['senior', 'sr', 'experienced', '5+ years', '7+ years'],
-  'lead': ['lead', 'principal', 'staff', 'architect', 'tech lead'],
+  junior: ['junior', 'jr', 'entry level', 'graduate', 'new grad'],
+  mid: ['mid', 'intermediate', '3-5 years'],
+  senior: ['senior', 'sr', 'experienced', '5+ years', '7+ years'],
+  lead: ['lead', 'principal', 'staff', 'architect', 'tech lead'],
 };
 
 /**
@@ -138,9 +195,7 @@ function generateTagSuggestions(application: JobApplication): TagSuggestion[] {
   }
 
   // Sort by confidence and return top suggestions
-  return suggestions
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, 3); // Limit to top 3 for Cloud Function efficiency
+  return suggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 3); // Limit to top 3 for Cloud Function efficiency
 }
 
 /**
@@ -150,9 +205,7 @@ function suggestIndustryTags(text: string): TagSuggestion[] {
   const suggestions: TagSuggestion[] = [];
 
   for (const [industryId, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
-    const matches = keywords.filter(keyword =>
-      text.includes(keyword.toLowerCase())
-    );
+    const matches = keywords.filter(keyword => text.includes(keyword.toLowerCase()));
 
     if (matches.length > 0) {
       const tag = TAG_DATABASE.industry.find(t => t.id === industryId);
@@ -177,9 +230,7 @@ function suggestRoleTags(text: string): TagSuggestion[] {
   const suggestions: TagSuggestion[] = [];
 
   for (const [roleId, keywords] of Object.entries(ROLE_KEYWORDS)) {
-    const matches = keywords.filter(keyword =>
-      text.toLowerCase().includes(keyword.toLowerCase())
-    );
+    const matches = keywords.filter(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
 
     if (matches.length > 0) {
       const tag = TAG_DATABASE['role-type'].find(t => t.id === roleId);
@@ -204,9 +255,7 @@ function suggestSeniorityTags(text: string): TagSuggestion[] {
   const suggestions: TagSuggestion[] = [];
 
   for (const [seniorityId, keywords] of Object.entries(SENIORITY_KEYWORDS)) {
-    const matches = keywords.filter(keyword =>
-      text.toLowerCase().includes(keyword.toLowerCase())
-    );
+    const matches = keywords.filter(keyword => text.toLowerCase().includes(keyword.toLowerCase()));
 
     if (matches.length > 0) {
       const tag = TAG_DATABASE.seniority.find(t => t.id === seniorityId);
@@ -238,7 +287,9 @@ export const autoTagApplication = functions.database
 
       // Skip if application already has tags
       if (application.tags && application.tags.length > 0) {
-        functions.logger.info(`Application ${applicationId} already has tags, skipping auto-tagging`);
+        functions.logger.info(
+          `Application ${applicationId} already has tags, skipping auto-tagging`
+        );
         return null;
       }
 
@@ -268,11 +319,14 @@ export const autoTagApplication = functions.database
 
       await snapshot.ref.update(updates);
 
-      functions.logger.info(`Auto-tagged application ${applicationId} with ${autoTags.length} tags:`, {
-        userId,
-        applicationId,
-        tags: autoTags.map(t => t.name),
-      });
+      functions.logger.info(
+        `Auto-tagged application ${applicationId} with ${autoTags.length} tags:`,
+        {
+          userId,
+          applicationId,
+          tags: autoTags.map(t => t.name),
+        }
+      );
 
       return null;
     } catch (error) {

@@ -5,22 +5,14 @@
 
 import { atom, map } from 'nanostores';
 import { persistentMap, persistentAtom } from '@nanostores/persistent';
-import type {
-  JobApplication,
-  ApplicationFilters,
-  SortOption,
-} from '@/types';
+import type { JobApplication, ApplicationFilters, SortOption } from '@/types';
 
 // Core application state
 // Use persistentAtom to cache applications for offline access
-export const applications = persistentAtom<JobApplication[]>(
-  'job-tracker-applications',
-  [],
-  {
-    encode: JSON.stringify,
-    decode: JSON.parse,
-  }
-);
+export const applications = persistentAtom<JobApplication[]>('job-tracker-applications', [], {
+  encode: JSON.stringify,
+  decode: JSON.parse,
+});
 export const filteredApplications = atom<JobApplication[]>([]);
 export const currentEditId = atom<string | null>(null);
 
@@ -33,20 +25,16 @@ type FilterStore = Record<string, string> & {
   visaSponsorship: string;
 };
 
-export const filters = persistentMap<FilterStore>(
-  'job-tracker-filters',
-  {
-    search: '',
-    status: 'all',
-    dateRange: 'all',
-    visaSponsorship: 'all',
-  }
-);
+export const filters = persistentMap<FilterStore>('job-tracker-filters', {
+  search: '',
+  status: 'all',
+  dateRange: 'all',
+  visaSponsorship: 'all',
+});
 
-export const sortBy = persistentMap<{ value: SortOption }>(
-  'job-tracker-sort',
-  { value: 'date-desc' }
-);
+export const sortBy = persistentMap<{ value: SortOption }>('job-tracker-sort', {
+  value: 'date-desc',
+});
 
 // Cache state
 export const cache = map<{

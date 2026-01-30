@@ -1,7 +1,7 @@
 /**
  * Input Validation Utilities
  * Ensures data integrity and prevents XSS attacks
- * 
+ *
  * NOTE: Enhanced validation moved to inputValidation.ts
  * This file maintained for backward compatibility
  */

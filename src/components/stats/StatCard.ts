@@ -19,11 +19,7 @@ export function createStatCard(props: StatCardProps): HTMLDivElement {
   card.className = 'stat-card';
 
   const trendIcon =
-    props.trend === 'up'
-      ? '📈'
-      : props.trend === 'down'
-        ? '📉'
-        : props.icon || '📊';
+    props.trend === 'up' ? '📈' : props.trend === 'down' ? '📉' : props.icon || '📊';
 
   // Create header
   const header = document.createElement('div');

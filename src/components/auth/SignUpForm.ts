@@ -114,7 +114,7 @@ export function createSignUpForm(options: SignUpFormOptions = {}): HTMLElement {
   });
 
   // Form submission
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
 
     if (isLoading) return;
@@ -161,20 +161,20 @@ export function createSignUpForm(options: SignUpFormOptions = {}): HTMLElement {
 
     try {
       await authService.signUp(email, password);
-      
+
       // Success animation
       animationService.stopButtonLoading(submitBtn);
       animationService.animateSuccessMessage(
         createSuccessMessage('Account created! Please check your email to verify your account.')
       );
-      
+
       if (options.onSuccess) {
         options.onSuccess();
       }
     } catch (error) {
       animationService.stopButtonLoading(submitBtn);
       const authError = error as AuthError;
-      
+
       // Show error
       if (authError.code.includes('email') || authError.code.includes('already-in-use')) {
         showError(emailError, authError.message);
@@ -268,11 +268,11 @@ function createSuccessMessage(message: string): HTMLElement {
     z-index: 10000;
   `;
   document.body.appendChild(messageEl);
-  
+
   // Remove after animation
   setTimeout(() => {
     messageEl.remove();
   }, 5000);
-  
+
   return messageEl;
 }

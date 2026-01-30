@@ -26,10 +26,7 @@ function formatWeekLabel(weekString: string): string {
   }
 }
 
-export function createVelocityChart(
-  canvas: HTMLCanvasElement,
-  data: VelocityChartData
-): Chart {
+export function createVelocityChart(canvas: HTMLCanvasElement, data: VelocityChartData): Chart {
   // Destroy existing chart if present
   if (chartInstance) {
     chartInstance.destroy();
@@ -48,12 +45,11 @@ export function createVelocityChart(
     return chartInstance as Chart;
   }
 
-  const labels = data.weeklyVelocity.map((item) => formatWeekLabel(item.week));
-  const counts = data.weeklyVelocity.map((item) => item.count);
+  const labels = data.weeklyVelocity.map(item => formatWeekLabel(item.week));
+  const counts = data.weeklyVelocity.map(item => item.count);
 
   // Calculate average
-  const average =
-    counts.reduce((sum, count) => sum + count, 0) / counts.length;
+  const average = counts.reduce((sum, count) => sum + count, 0) / counts.length;
 
   const config: ChartConfiguration = {
     type: 'line',
@@ -104,7 +100,7 @@ export function createVelocityChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            afterLabel: (context) => {
+            afterLabel: context => {
               if (context.datasetIndex === 0) {
                 return `Week of ${data.weeklyVelocity[context.dataIndex]?.week || ''}`;
               }

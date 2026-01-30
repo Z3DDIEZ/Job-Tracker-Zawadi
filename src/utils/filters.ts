@@ -6,17 +6,14 @@
 import type { JobApplication, ApplicationFilters } from '@/types';
 
 export const FilterManager = {
-  applyFilters(
-    applications: JobApplication[],
-    filters: ApplicationFilters
-  ): JobApplication[] {
+  applyFilters(applications: JobApplication[], filters: ApplicationFilters): JobApplication[] {
     let filtered = [...applications];
 
     // Search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(
-        (app) =>
+        app =>
           (app.company || '').toLowerCase().includes(searchTerm) ||
           (app.role || '').toLowerCase().includes(searchTerm)
       );
@@ -24,15 +21,13 @@ export const FilterManager = {
 
     // Status filter
     if (filters.status !== 'all') {
-      filtered = filtered.filter((app) => app.status === filters.status);
+      filtered = filtered.filter(app => app.status === filters.status);
     }
 
     // Visa sponsorship filter
     if (filters.visaSponsorship !== 'all') {
       const requiresVisa = filters.visaSponsorship === 'true';
-      filtered = filtered.filter(
-        (app) => app.visaSponsorship === requiresVisa
-      );
+      filtered = filtered.filter(app => app.visaSponsorship === requiresVisa);
     }
 
     // Date range filter
@@ -46,7 +41,7 @@ export const FilterManager = {
 
       const rangeMs = ranges[filters.dateRange];
       if (rangeMs) {
-        filtered = filtered.filter((app) => {
+        filtered = filtered.filter(app => {
           const appDate = new Date(app.dateApplied).getTime();
           return now - appDate <= rangeMs;
         });
@@ -55,7 +50,7 @@ export const FilterManager = {
 
     // Tag filter
     if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter((app) => {
+      filtered = filtered.filter(app => {
         if (!app.tags || app.tags.length === 0) {
           return false; // No tags on application, doesn't match
         }

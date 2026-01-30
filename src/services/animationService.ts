@@ -23,9 +23,9 @@ class AnimationService {
   constructor() {
     // Check for reduced motion preference
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
+
     // Listen for changes
-    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => {
       this.prefersReducedMotion = e.matches;
     });
   }
@@ -68,7 +68,7 @@ class AnimationService {
    * Cancel all active animations
    */
   cancelAllAnimations() {
-    this.activeAnimations.forEach((animation) => {
+    this.activeAnimations.forEach(animation => {
       animation.pause();
       animation.seek(animation.duration);
     });
@@ -92,7 +92,7 @@ class AnimationService {
     set(cards, {
       opacity: 0,
       translateY: 50,
-      scale: 0.9
+      scale: 0.9,
     });
 
     const animation = animate(cards, {
@@ -104,7 +104,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete('cards-entrance');
-      }
+      },
     });
 
     this.registerAnimation('cards-entrance', animation);
@@ -123,7 +123,7 @@ class AnimationService {
     set(cardElement, {
       opacity: 0,
       translateY: 30,
-      scale: 0.95
+      scale: 0.95,
     });
 
     const animation = animate(cardElement, {
@@ -134,7 +134,7 @@ class AnimationService {
       ease: 'out-back',
       onComplete: () => {
         this.activeAnimations.delete(`card-add-${cardElement.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`card-add-${cardElement.id}`, animation);
@@ -159,7 +159,7 @@ class AnimationService {
       onComplete: () => {
         this.activeAnimations.delete(`card-remove-${cardElement.id}`);
         if (onComplete) onComplete();
-      }
+      },
     });
 
     this.registerAnimation(`card-remove-${cardElement.id}`, animation);
@@ -178,7 +178,7 @@ class AnimationService {
       translateY: -8,
       scale: 1.02,
       duration: 300,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`card-hover-${cardElement.id}`, animation);
@@ -197,7 +197,7 @@ class AnimationService {
       translateY: 0,
       scale: 1,
       duration: 300,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`card-hover-${cardElement.id}`, animation);
@@ -223,7 +223,7 @@ class AnimationService {
       onComplete: () => {
         this.activeAnimations.delete(`status-${badgeElement.id}`);
         if (onComplete) onComplete();
-      }
+      },
     });
 
     // Timeline.add() signature: add(target, parameters, position)
@@ -231,7 +231,7 @@ class AnimationService {
       scale: [1, 1.2],
       opacity: [1, 0.7],
       duration: 200,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     }).add(badgeElement, {
       scale: [1.2, 1],
       opacity: [0.7, 1],
@@ -242,7 +242,7 @@ class AnimationService {
         if (newColor) {
           badgeElement.style.backgroundColor = newColor;
         }
-      }
+      },
     });
 
     this.registerAnimation(`status-${badgeElement.id}`, tl);
@@ -261,7 +261,7 @@ class AnimationService {
       loop: count,
       onComplete: () => {
         this.activeAnimations.delete(`pulse-${element.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`pulse-${element.id}`, animation);
@@ -294,7 +294,7 @@ class AnimationService {
       onComplete: () => {
         this.activeAnimations.delete('view-fade-out');
         if (onComplete) onComplete();
-      }
+      },
     });
 
     this.registerAnimation('view-fade-out', animation);
@@ -318,7 +318,7 @@ class AnimationService {
     // Reset initial state
     set(container, {
       opacity: 0,
-      translateY: 20
+      translateY: 20,
     });
 
     const animation = animate(container, {
@@ -328,13 +328,11 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete('view-fade-in');
-      }
+      },
     });
 
     this.registerAnimation('view-fade-in', animation);
   }
-
-  
 
   // ========================================
   // FORM ANIMATIONS
@@ -349,7 +347,7 @@ class AnimationService {
     const animation = animate(inputElement, {
       scale: [1, 1.02, 1],
       duration: 300,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`input-focus-${inputElement.id}`, animation);
@@ -368,17 +366,17 @@ class AnimationService {
       onComplete: () => {
         this.activeAnimations.delete(`button-${buttonElement.id}`);
         if (onComplete) onComplete();
-      }
+      },
     });
 
     tl.add(buttonElement, {
       scale: 0.95,
       duration: 100,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     }).add(buttonElement, {
       scale: 1,
       duration: 100,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`button-${buttonElement.id}`, tl);
@@ -399,13 +397,13 @@ class AnimationService {
     // Reset initial state
     set(messageElement, {
       opacity: 0,
-      translateY: -20
+      translateY: -20,
     });
 
     const tl = createTimeline({
       onComplete: () => {
         this.activeAnimations.delete(`message-${messageElement.id}`);
-      }
+      },
     });
 
     tl
@@ -414,18 +412,18 @@ class AnimationService {
         opacity: [0, 1],
         translateY: [-20, 0],
         duration: 400,
-        ease: 'out-cubic'
+        ease: 'out-cubic',
       })
       // Hold - add a timer without target
       .add({
-        duration: duration
+        duration: duration,
       })
       // Fade out
       .add(messageElement, {
         opacity: [1, 0],
         translateY: [0, 20],
         duration: 400,
-        ease: 'in-cubic'
+        ease: 'in-cubic',
       });
 
     this.registerAnimation(`message-${messageElement.id}`, tl);
@@ -434,7 +432,6 @@ class AnimationService {
   // ========================================
   // CHART ANIMATIONS
   // ========================================
-
 
   /**
    * Staggered entrance for multiple charts
@@ -449,7 +446,7 @@ class AnimationService {
     set(charts, {
       opacity: 0,
       translateY: 50,
-      scale: 0.95
+      scale: 0.95,
     });
 
     const animation = animate(charts, {
@@ -461,7 +458,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete('charts-entrance');
-      }
+      },
     });
 
     this.registerAnimation('charts-entrance', animation);
@@ -487,7 +484,7 @@ class AnimationService {
       opacity: [0, 1],
       scale: [0.8, 1],
       duration: 300,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation('loading-show', animation);
@@ -512,7 +509,7 @@ class AnimationService {
         loadingElement.style.display = 'none';
         this.activeAnimations.delete('loading-hide');
         if (onComplete) onComplete();
-      }
+      },
     });
 
     this.registerAnimation('loading-hide', animation);
@@ -534,12 +531,12 @@ class AnimationService {
         { to: 10, duration: 100 },
         { to: -10, duration: 100 },
         { to: 10, duration: 100 },
-        { to: 0, duration: 100 }
+        { to: 0, duration: 100 },
       ],
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete(`shake-${element.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`shake-${element.id}`, animation);
@@ -554,13 +551,13 @@ class AnimationService {
     const animation = animate(element, {
       translateY: [
         { to: -height, duration: 200 },
-        { to: 0, duration: 200 }
+        { to: 0, duration: 200 },
       ],
       ease: 'out-cubic',
       loop: 2,
       onComplete: () => {
         this.activeAnimations.delete(`bounce-${element.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`bounce-${element.id}`, animation);
@@ -577,7 +574,7 @@ class AnimationService {
 
     set(element, {
       opacity: 0,
-      translateX: 100
+      translateX: 100,
     });
 
     const animation = animate(element, {
@@ -587,7 +584,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete(`slide-${element.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`slide-${element.id}`, animation);
@@ -610,7 +607,7 @@ class AnimationService {
       onComplete: () => {
         this.activeAnimations.delete(`slide-${element.id}`);
         if (onComplete) onComplete();
-      }
+      },
     });
 
     this.registerAnimation(`slide-${element.id}`, animation);
@@ -630,7 +627,7 @@ class AnimationService {
       opacity: [1, 0.7, 1],
       duration: 1000,
       ease: 'inout-quad',
-      loop: true
+      loop: true,
     });
 
     this.registerAnimation(`button-loading-${button.id}`, animation);
@@ -656,7 +653,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete(`highlight-${element.id}`);
-      }
+      },
     });
 
     this.registerAnimation(`highlight-${element.id}`, animation);
@@ -683,7 +680,7 @@ class AnimationService {
         card.remove();
         this.activeAnimations.delete(`card-deletion-${card.id}`);
         if (onComplete) onComplete();
-      }
+      },
     });
 
     this.registerAnimation(`card-deletion-${card.id}`, animation);
@@ -700,7 +697,7 @@ class AnimationService {
 
     set(messageElement, {
       opacity: 0,
-      translateY: -20
+      translateY: -20,
     });
 
     const animation = animate(messageElement, {
@@ -710,7 +707,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete(`message-${type}`);
-      }
+      },
     });
 
     this.registerAnimation(`message-${type}`, animation);
@@ -732,7 +729,7 @@ class AnimationService {
     set(cardsArray, {
       opacity: 0,
       translateY: 50,
-      scale: 0.9
+      scale: 0.9,
     });
 
     const animation = animate(cardsArray, {
@@ -744,7 +741,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete('card-entrance-multi');
-      }
+      },
     });
 
     this.registerAnimation('card-entrance-multi', animation);
@@ -767,7 +764,7 @@ class AnimationService {
     set(chartsArray, {
       opacity: 0,
       translateY: 30,
-      scale: 0.95
+      scale: 0.95,
     });
 
     const animation = animate(chartsArray, {
@@ -779,7 +776,7 @@ class AnimationService {
       ease: 'out-cubic',
       onComplete: () => {
         this.activeAnimations.delete('charts-entrance-multi');
-      }
+      },
     });
 
     this.registerAnimation('charts-entrance-multi', animation);
@@ -794,7 +791,7 @@ class AnimationService {
     const animation = animate(field, {
       scale: [1, 1.01],
       duration: 200,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`field-focus-${field.id}`, animation);
@@ -809,7 +806,7 @@ class AnimationService {
     const animation = animate(field, {
       scale: [1.01, 1],
       duration: 200,
-      ease: 'out-cubic'
+      ease: 'out-cubic',
     });
 
     this.registerAnimation(`field-blur-${field.id}`, animation);
@@ -827,8 +824,10 @@ class AnimationService {
     const direction = options?.direction || 'vertical';
 
     // Get elements from selectors if needed
-    const oldElement = typeof oldView === 'string' ? document.querySelector(oldView) as HTMLElement : oldView;
-    const newElement = typeof newView === 'string' ? document.querySelector(newView) as HTMLElement : newView;
+    const oldElement =
+      typeof oldView === 'string' ? (document.querySelector(oldView) as HTMLElement) : oldView;
+    const newElement =
+      typeof newView === 'string' ? (document.querySelector(newView) as HTMLElement) : newView;
 
     // Fade out old view
     if (oldElement) {
@@ -846,7 +845,7 @@ class AnimationService {
           onComplete: () => {
             oldElement.style.display = 'none';
             this.activeAnimations.delete('transition-out');
-          }
+          },
         });
 
         this.registerAnimation('transition-out', animation);
@@ -866,7 +865,7 @@ class AnimationService {
 
           set(newElement, {
             opacity: 0,
-            [translateProp]: translateValue
+            [translateProp]: translateValue,
           });
 
           const animation = animate(newElement, {
@@ -876,7 +875,7 @@ class AnimationService {
             ease: 'out-cubic',
             onComplete: () => {
               this.activeAnimations.delete('transition-in');
-            }
+            },
           });
 
           this.registerAnimation('transition-in', animation);

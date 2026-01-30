@@ -9,7 +9,7 @@ import type { Tag, TagSuggestion, TagCategory, JobApplication } from '@/types';
  * Predefined tag database organized by categories
  */
 const TAG_DATABASE: Record<TagCategory, Tag[]> = {
-  'industry': [
+  industry: [
     { id: 'tech', name: 'Technology', category: 'industry', color: '#3b82f6' },
     { id: 'finance', name: 'Finance', category: 'industry', color: '#10b981' },
     { id: 'healthcare', name: 'Healthcare', category: 'industry', color: '#f59e0b' },
@@ -36,13 +36,13 @@ const TAG_DATABASE: Record<TagCategory, Tag[]> = {
     { id: 'large', name: 'Large (500+)', category: 'company-size', color: '#8b5cf6' },
     { id: 'enterprise', name: 'Enterprise', category: 'company-size', color: '#ef4444' },
   ],
-  'location': [
+  location: [
     { id: 'remote', name: 'Remote', category: 'location', color: '#3b82f6' },
     { id: 'hybrid', name: 'Hybrid', category: 'location', color: '#10b981' },
     { id: 'onsite', name: 'On-site', category: 'location', color: '#f59e0b' },
     { id: 'international', name: 'International', category: 'location', color: '#8b5cf6' },
   ],
-  'seniority': [
+  seniority: [
     { id: 'junior', name: 'Junior', category: 'seniority', color: '#3b82f6' },
     { id: 'mid', name: 'Mid-Level', category: 'seniority', color: '#10b981' },
     { id: 'senior', name: 'Senior', category: 'seniority', color: '#f59e0b' },
@@ -60,38 +60,173 @@ const TAG_DATABASE: Record<TagCategory, Tag[]> = {
  * Industry keywords and their associated tags
  */
 const INDUSTRY_KEYWORDS: Record<string, string[]> = {
-  'tech': ['google', 'microsoft', 'amazon', 'apple', 'facebook', 'meta', 'netflix', 'uber', 'airbnb', 'spotify', 'slack', 'zoom', 'stripe', 'shopify', 'square', 'twilio', 'datadog', 'snowflake', 'mongodb', 'elastic'],
-  'finance': ['jpmorgan', 'goldman', 'morgan stanley', 'blackrock', 'fidelity', 'vanguard', 'wells fargo', 'bank of america', 'citigroup', 'paypal', 'venmo', 'coinbase', 'robinhood', 'sofi'],
-  'healthcare': ['unitedhealth', 'anthem', 'humana', 'cvs', 'walgreens', 'pfizer', 'johnson & johnson', 'merck', 'abbvie', 'thermo fisher', 'roche', 'novartis', 'astrazeneca', 'gilead'],
-  'education': ['coursera', 'udacity', 'udemy', 'edx', 'khan academy', 'duolingo', 'byju', 'chegg', 'pearson', 'mcgraw hill'],
-  'retail': ['walmart', 'amazon retail', 'target', 'costco', 'home depot', 'lowes', 'macy', 'kohl', 'nordstrom', 'best buy'],
-  'consulting': ['mckinsey', 'bain', 'bcg', 'deloitte', 'ey', 'kpmg', 'pwc', 'accenture', 'capgemini', 'tcs', 'infosys', 'wipro'],
+  tech: [
+    'google',
+    'microsoft',
+    'amazon',
+    'apple',
+    'facebook',
+    'meta',
+    'netflix',
+    'uber',
+    'airbnb',
+    'spotify',
+    'slack',
+    'zoom',
+    'stripe',
+    'shopify',
+    'square',
+    'twilio',
+    'datadog',
+    'snowflake',
+    'mongodb',
+    'elastic',
+  ],
+  finance: [
+    'jpmorgan',
+    'goldman',
+    'morgan stanley',
+    'blackrock',
+    'fidelity',
+    'vanguard',
+    'wells fargo',
+    'bank of america',
+    'citigroup',
+    'paypal',
+    'venmo',
+    'coinbase',
+    'robinhood',
+    'sofi',
+  ],
+  healthcare: [
+    'unitedhealth',
+    'anthem',
+    'humana',
+    'cvs',
+    'walgreens',
+    'pfizer',
+    'johnson & johnson',
+    'merck',
+    'abbvie',
+    'thermo fisher',
+    'roche',
+    'novartis',
+    'astrazeneca',
+    'gilead',
+  ],
+  education: [
+    'coursera',
+    'udacity',
+    'udemy',
+    'edx',
+    'khan academy',
+    'duolingo',
+    'byju',
+    'chegg',
+    'pearson',
+    'mcgraw hill',
+  ],
+  retail: [
+    'walmart',
+    'amazon retail',
+    'target',
+    'costco',
+    'home depot',
+    'lowes',
+    'macy',
+    'kohl',
+    'nordstrom',
+    'best buy',
+  ],
+  consulting: [
+    'mckinsey',
+    'bain',
+    'bcg',
+    'deloitte',
+    'ey',
+    'kpmg',
+    'pwc',
+    'accenture',
+    'capgemini',
+    'tcs',
+    'infosys',
+    'wipro',
+  ],
 };
 
 /**
  * Role type keywords
  */
 const ROLE_KEYWORDS: Record<string, string[]> = {
-  'frontend': ['frontend', 'front-end', 'ui', 'ux', 'react', 'angular', 'vue', 'javascript', 'typescript', 'html', 'css', 'sass', 'less'],
-  'backend': ['backend', 'back-end', 'server', 'api', 'node', 'python', 'java', 'c#', 'go', 'ruby', 'php', 'django', 'flask', 'spring'],
-  'fullstack': ['fullstack', 'full-stack', 'full stack'],
-  'devops': ['devops', 'sre', 'infrastructure', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'terraform'],
-  'data': ['data scientist', 'data engineer', 'machine learning', 'ml', 'ai', 'analytics', 'bi', 'tableau', 'power bi'],
-  'mobile': ['ios', 'android', 'mobile', 'react native', 'flutter', 'swift', 'kotlin'],
-  'qa': ['qa', 'quality assurance', 'testing', 'automation', 'selenium', 'cypress'],
-  'product': ['product manager', 'pm', 'product owner', 'po'],
+  frontend: [
+    'frontend',
+    'front-end',
+    'ui',
+    'ux',
+    'react',
+    'angular',
+    'vue',
+    'javascript',
+    'typescript',
+    'html',
+    'css',
+    'sass',
+    'less',
+  ],
+  backend: [
+    'backend',
+    'back-end',
+    'server',
+    'api',
+    'node',
+    'python',
+    'java',
+    'c#',
+    'go',
+    'ruby',
+    'php',
+    'django',
+    'flask',
+    'spring',
+  ],
+  fullstack: ['fullstack', 'full-stack', 'full stack'],
+  devops: [
+    'devops',
+    'sre',
+    'infrastructure',
+    'aws',
+    'azure',
+    'gcp',
+    'docker',
+    'kubernetes',
+    'jenkins',
+    'terraform',
+  ],
+  data: [
+    'data scientist',
+    'data engineer',
+    'machine learning',
+    'ml',
+    'ai',
+    'analytics',
+    'bi',
+    'tableau',
+    'power bi',
+  ],
+  mobile: ['ios', 'android', 'mobile', 'react native', 'flutter', 'swift', 'kotlin'],
+  qa: ['qa', 'quality assurance', 'testing', 'automation', 'selenium', 'cypress'],
+  product: ['product manager', 'pm', 'product owner', 'po'],
 };
-
 
 /**
  * Seniority level keywords
  */
 const SENIORITY_KEYWORDS: Record<string, string[]> = {
-  'junior': ['junior', 'jr', 'entry level', 'graduate', 'new grad'],
-  'mid': ['mid', 'intermediate', '3-5 years'],
-  'senior': ['senior', 'sr', 'experienced', '5+ years', '7+ years'],
-  'lead': ['lead', 'principal', 'staff', 'architect', 'tech lead'],
-  'executive': ['vp', 'vice president', 'director', 'chief', 'head of', 'cto', 'ceo'],
+  junior: ['junior', 'jr', 'entry level', 'graduate', 'new grad'],
+  mid: ['mid', 'intermediate', '3-5 years'],
+  senior: ['senior', 'sr', 'experienced', '5+ years', '7+ years'],
+  lead: ['lead', 'principal', 'staff', 'architect', 'tech lead'],
+  executive: ['vp', 'vice president', 'director', 'chief', 'head of', 'cto', 'ceo'],
 };
 
 /**
@@ -127,9 +262,7 @@ export class TaggingService {
     }
 
     // Sort by confidence and return top suggestions
-    return suggestions
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 5); // Limit to top 5 suggestions
+    return suggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 5); // Limit to top 5 suggestions
   }
 
   /**
@@ -139,9 +272,7 @@ export class TaggingService {
     const suggestions: TagSuggestion[] = [];
 
     for (const [industryId, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
-      const matches = keywords.filter(keyword =>
-        text.includes(keyword.toLowerCase())
-      );
+      const matches = keywords.filter(keyword => text.includes(keyword.toLowerCase()));
 
       if (matches.length > 0) {
         const tag = TAG_DATABASE.industry.find(t => t.id === industryId);
@@ -270,9 +401,7 @@ export class TaggingService {
    */
   static validateTags(tags: Tag[]): boolean {
     return tags.every(tag =>
-      Object.values(TAG_DATABASE).some(categoryTags =>
-        categoryTags.some(t => t.id === tag.id)
-      )
+      Object.values(TAG_DATABASE).some(categoryTags => categoryTags.some(t => t.id === tag.id))
     );
   }
 }

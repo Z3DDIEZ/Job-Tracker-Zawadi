@@ -23,12 +23,12 @@ export function createStatusDistributionChart(
   }
 
   const statuses = Object.keys(data.statusDistribution) as ApplicationStatus[];
-  const counts = statuses.map((status) => data.statusDistribution[status] || 0);
+  const counts = statuses.map(status => data.statusDistribution[status] || 0);
 
   // Filter out zero values for cleaner chart
   const filteredData = statuses
     .map((status, index) => ({ status, count: counts[index] || 0 }))
-    .filter((item) => item.count > 0);
+    .filter(item => item.count > 0);
 
   if (filteredData.length === 0) {
     // Show empty state
@@ -46,17 +46,15 @@ export function createStatusDistributionChart(
   const config: ChartConfiguration = {
     type: 'doughnut',
     data: {
-      labels: filteredData.map((item) => item.status),
+      labels: filteredData.map(item => item.status),
       datasets: [
         {
           label: 'Applications',
-          data: filteredData.map((item) => item.count).filter((count): count is number => count !== undefined),
-          backgroundColor: filteredData.map((item) =>
-            getStatusColor(item.status, 'background')
-          ),
-          borderColor: filteredData.map((item) =>
-            getStatusColor(item.status, 'border')
-          ),
+          data: filteredData
+            .map(item => item.count)
+            .filter((count): count is number => count !== undefined),
+          backgroundColor: filteredData.map(item => getStatusColor(item.status, 'background')),
+          borderColor: filteredData.map(item => getStatusColor(item.status, 'border')),
           borderWidth: 2,
         },
       ],

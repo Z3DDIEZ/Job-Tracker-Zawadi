@@ -12,7 +12,7 @@ import type { JobApplication } from '@/types';
 export function createApplicationCardSafe(app: JobApplication): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'application-card';
-  
+
   // Validate and set ID safely
   try {
     validateApplicationId(app.id);
@@ -22,9 +22,7 @@ export function createApplicationCardSafe(app: JobApplication): HTMLDivElement {
     return card; // Return empty card if ID invalid
   }
 
-  const statusClass = app.status
-    ? app.status.toLowerCase().replace(/\s+/g, '-')
-    : 'unknown';
+  const statusClass = app.status ? app.status.toLowerCase().replace(/\s+/g, '-') : 'unknown';
 
   card.classList.add(`status-${statusClass}`);
 
@@ -113,12 +111,12 @@ export function createApplicationCardSafe(app: JobApplication): HTMLDivElement {
  */
 export function createSafeHTML(template: string, values: Record<string, string>): string {
   let safeHTML = template;
-  
+
   // Replace placeholders with escaped values
   Object.entries(values).forEach(([key, value]) => {
     const placeholder = `{{${key}}}`;
     safeHTML = safeHTML.replace(new RegExp(placeholder, 'g'), escapeHtml(value));
   });
-  
+
   return safeHTML;
 }

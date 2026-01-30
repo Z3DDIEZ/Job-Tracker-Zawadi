@@ -7,7 +7,6 @@ import { authService } from '@/services/authService';
 import { animationService } from '@/services/animationService';
 import type { User } from '@/types';
 
-
 export interface UserProfileOptions {
   onSignOut?: () => void;
 }
@@ -31,19 +30,24 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
         <div class="user-avatar-large">${getInitials(user.email || 'User')}</div>
         <div class="user-info">
           <div class="user-email-display">${user.email || 'User'}</div>
-          ${user.emailVerified ? 
-            '<span class="email-verified-badge">✓ Verified</span>' : 
-            '<span class="email-unverified-badge">⚠ Not verified</span>'
+          ${
+            user.emailVerified
+              ? '<span class="email-verified-badge">✓ Verified</span>'
+              : '<span class="email-unverified-badge">⚠ Not verified</span>'
           }
         </div>
       </div>
       <div class="user-profile-actions">
-        ${!user.emailVerified ? `
+        ${
+          !user.emailVerified
+            ? `
           <button class="menu-item" id="resend-verification-btn">
             <span class="menu-icon">📧</span>
             Resend verification email
           </button>
-        ` : ''}
+        `
+            : ''
+        }
         <button class="menu-item" id="sign-out-btn">
           <span class="menu-icon">🚪</span>
           Sign Out
@@ -55,18 +59,20 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
   const trigger = profile.querySelector('#user-profile-trigger') as HTMLButtonElement;
   const menu = profile.querySelector('#user-profile-menu') as HTMLElement;
   const signOutBtn = profile.querySelector('#sign-out-btn') as HTMLButtonElement;
-  const resendVerificationBtn = profile.querySelector('#resend-verification-btn') as HTMLButtonElement | null;
+  const resendVerificationBtn = profile.querySelector(
+    '#resend-verification-btn'
+  ) as HTMLButtonElement | null;
 
   let isMenuOpen = false;
 
   // Toggle menu
-  trigger.addEventListener('click', (e) => {
+  trigger.addEventListener('click', e => {
     e.stopPropagation();
     toggleMenu();
   });
 
   // Close menu when clicking outside
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', e => {
     if (isMenuOpen && !profile.contains(e.target as Node)) {
       closeMenu();
     }
@@ -77,13 +83,16 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
     try {
       await authService.signOut();
       animationService.animateSuccessMessage(createSuccessMessage('Signed out successfully'));
-      
+
       if (options.onSignOut) {
         options.onSignOut();
       }
     } catch (error) {
       console.error('Sign out error:', error);
-      animationService.animateMessage(createErrorMessage('Failed to sign out. Please try again.'), 'error');
+      animationService.animateMessage(
+        createErrorMessage('Failed to sign out. Please try again.'),
+        'error'
+      );
     }
   });
 
@@ -123,7 +132,6 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
           resendVerificationBtn.style.cursor = originalCursor;
           resendVerificationBtn.disabled = false;
         }, 3000);
-
       } catch (error: any) {
         console.error('Resend verification error:', error);
 
@@ -133,11 +141,9 @@ export function createUserProfile(user: User, options: UserProfileOptions = {}):
         resendVerificationBtn.disabled = false;
 
         // Show specific error message
-        const errorMessage = error?.message || 'Failed to send verification email. Please try again.';
-        animationService.animateMessage(
-          createErrorMessage(errorMessage),
-          'error'
-        );
+        const errorMessage =
+          error?.message || 'Failed to send verification email. Please try again.';
+        animationService.animateMessage(createErrorMessage(errorMessage), 'error');
       }
     });
   }
@@ -212,11 +218,11 @@ function createSuccessMessage(message: string): HTMLElement {
     z-index: 10000;
   `;
   document.body.appendChild(messageEl);
-  
+
   setTimeout(() => {
     messageEl.remove();
   }, 5000);
-  
+
   return messageEl;
 }
 
@@ -239,10 +245,10 @@ function createErrorMessage(message: string): HTMLElement {
     z-index: 10000;
   `;
   document.body.appendChild(messageEl);
-  
+
   setTimeout(() => {
     messageEl.remove();
   }, 5000);
-  
+
   return messageEl;
 }

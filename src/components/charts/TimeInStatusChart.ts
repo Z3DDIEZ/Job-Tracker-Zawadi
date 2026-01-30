@@ -25,11 +25,11 @@ export function createTimeInStatusChart(
   // Filter out statuses with zero time
   const statuses = Object.keys(data.averageTimeInStatus) as ApplicationStatus[];
   const filteredData = statuses
-    .map((status) => ({
+    .map(status => ({
       status,
       days: data.averageTimeInStatus[status] || 0,
     }))
-    .filter((item) => item.days > 0);
+    .filter(item => item.days > 0);
 
   if (filteredData.length === 0) {
     // Show empty state
@@ -44,8 +44,8 @@ export function createTimeInStatusChart(
     return chartInstance as Chart;
   }
 
-  const labels = filteredData.map((item) => item.status);
-  const days = filteredData.map((item) => item.days);
+  const labels = filteredData.map(item => item.status);
+  const days = filteredData.map(item => item.days);
 
   // Find max for highlighting
   const maxDays = Math.max(...days);
@@ -68,7 +68,7 @@ export function createTimeInStatusChart(
             }
             return getStatusColor(status, 'background');
           }),
-          borderColor: labels.map((status) => getStatusColor(status, 'border')),
+          borderColor: labels.map(status => getStatusColor(status, 'border')),
           borderWidth: 2,
         },
       ],
@@ -93,7 +93,7 @@ export function createTimeInStatusChart(
         tooltip: {
           ...defaultChartOptions.plugins?.tooltip,
           callbacks: {
-            label: (context) => {
+            label: context => {
               const days = context.parsed.x;
               return `Average: ${days} day${days !== 1 ? 's' : ''}`;
             },
@@ -111,7 +111,7 @@ export function createTimeInStatusChart(
             font: {
               size: 11,
             },
-            callback: (value) => {
+            callback: value => {
               return `${value} day${value !== 1 ? 's' : ''}`;
             },
           },
