@@ -111,3 +111,14 @@ export async function secureFirebaseRead(
   const ref = secureFirebaseRef(database, path, id);
   return ref.once('value');
 }
+
+/**
+ * Get user-specific database path
+ */
+export function getUserApplicationsPath(userId?: string): string {
+  if (userId) {
+    return `applications/${userId}`;
+  }
+  // Fallback for anonymous/legacy data (will be migrated)
+  return 'applications';
+}

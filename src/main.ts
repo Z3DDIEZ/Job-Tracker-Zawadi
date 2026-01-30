@@ -8,20 +8,16 @@ import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { getFirebaseConfig } from './config/firebase';
 import {
   applications,
-  currentEditId,
   filters,
   sortBy,
   setApplications,
   setFilteredApplications,
-  setCurrentEditId,
   updateFilter,
   resetFilters,
   setSortPreference,
 } from './stores/applicationStore';
-import { Validators } from './utils/validators';
 import { FilterManager } from './utils/filters';
 import { TaggingService } from './services/taggingService';
-import type { Tag, TagSuggestion } from './types';
 import { SortManager } from './utils/sorting';
 import { CacheManager } from './utils/cache';
 import { analyticsService } from './services/analytics';
@@ -33,17 +29,15 @@ import { createTableView, type ViewMode } from './utils/viewModes';
 import {
   validateApplicationId,
   escapeHtml,
-  sanitizeUserInput,
-  rateLimiter,
 } from './utils/security';
-import { securityLogger } from './utils/securityLogger';
+import { ApplicationController } from './controllers/ApplicationController';
+import { FormController, FormElements } from './controllers/FormController';
 import {
-  secureFirebaseRef,
-  secureFirebaseUpdate,
-  secureFirebaseDelete,
-  secureFirebaseRead,
-} from './utils/firebaseSecurity';
-import { createApplicationCardSafe } from './utils/domHelpers';
+  createApplicationCardSafe,
+  showSuccessMessage,
+  showErrorMessage,
+  showInfoMessage
+} from './utils/domHelpers';
 import { generateDemoData } from './utils/demoData';
 import { exportToCSV } from './utils/exportHelpers';
 import {
@@ -66,7 +60,10 @@ new PwaInstallPrompt();
 
 // Firebase initialization
 let database: firebase.database.Database | undefined;
+
 let auth: firebase.auth.Auth | undefined;
+let appController: ApplicationController | undefined;
+let formController: FormController | undefined;
 
 // Initialize Firebase
 function initializeFirebase(): boolean {
@@ -97,6 +94,30 @@ function initializeFirebase(): boolean {
     // Initialize auth service
     authService.initialize(auth);
 
+    // Initialize Application Controller
+    appController = new ApplicationController(database!);
+
+    // Initialize Form Controller
+    const formElements: FormElements = {
+      form: document.getElementById('application-form') as HTMLFormElement,
+      submitBtn: document.getElementById('submit-btn') as HTMLButtonElement,
+      companyInput: document.getElementById('company') as HTMLInputElement,
+      roleInput: document.getElementById('role') as HTMLInputElement,
+      dateInput: document.getElementById('date') as HTMLInputElement,
+      statusSelect: document.getElementById('status') as HTMLSelectElement,
+      visaCheckbox: document.getElementById('visa') as HTMLInputElement,
+      tagInput: document.getElementById('tag-input') as HTMLInputElement,
+      addTagBtn: document.getElementById('add-tag-btn') as HTMLButtonElement,
+      selectedTagsContainer: document.getElementById('selected-tags') as HTMLElement,
+      tagSuggestionsContainer: document.getElementById('tag-suggestions') as HTMLElement,
+      tagSuggestionsList: document.getElementById('suggestions-list') as HTMLElement,
+      tagCategoriesList: document.getElementById('tag-categories-list') as HTMLElement,
+      formSection: document.getElementById('form-section') as HTMLElement,
+    };
+
+    formController = new FormController(formElements, appController);
+    formController.init();
+
     console.log('🔥 Firebase initialized');
     return true;
   } catch (error) {
@@ -113,14 +134,7 @@ function isFirebaseReady(): boolean {
   return database !== undefined && auth !== undefined;
 }
 
-// Get user-specific database path
-function getUserApplicationsPath(userId?: string): string {
-  if (userId) {
-    return `applications/${userId}`;
-  }
-  // Fallback for anonymous/legacy data (will be migrated)
-  return 'applications';
-}
+
 
 // Show user-friendly Firebase config error
 function showFirebaseConfigError(): void {
@@ -161,8 +175,6 @@ function showFirebaseConfigError(): void {
 }
 
 // DOM Elements
-const form = document.getElementById('application-form') as HTMLFormElement;
-const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const statusFilter = document.getElementById('status-filter') as HTMLSelectElement;
 const counterText = document.getElementById('counter-text') as HTMLSpanElement;
@@ -176,846 +188,58 @@ let currentViewMode: ViewMode = 'cards';
 let currentPage = 1;
 const itemsPerPage = 20;
 
-// Edit Mode - Store original data for comparison
-let originalApplicationData: JobApplication | null = null;
-
-// Tag management state
-let selectedTags: Tag[] = [];
-let tagSuggestions: TagSuggestion[] = [];
-
 // ========================================
 // FORM SUBMISSION WITH VALIDATION
 // ========================================
 
-form?.addEventListener('submit', function (event) {
-  event.preventDefault();
+// Form logic moved to FormController
 
-  // Check if user is authenticated first
-  const user = authService.getCurrentUser();
-  if (!user) {
-    showErrorMessage(
-      'Please sign in to save your applications. You can view the form, but saving requires authentication.'
-    );
-    return;
-  }
 
-  const company = (document.getElementById('company') as HTMLInputElement).value.trim();
-  const role = (document.getElementById('role') as HTMLInputElement).value.trim();
-  const dateApplied = (document.getElementById('date') as HTMLInputElement).value;
-  const status = (document.getElementById('status') as HTMLSelectElement).value;
-  const visaSponsorship = (document.getElementById('visa') as HTMLInputElement).checked;
-  const tags = getSelectedTags();
-
-  clearValidationErrors();
-
-  const errors = Validators.validateApplication(company, role, dateApplied, status);
-
-  if (errors.length > 0) {
-    // Log validation failures
-    securityLogger.log({
-      type: 'validation_failed',
-      message: 'Form validation failed',
-      details: { errors: errors.map(e => e.field) },
-    });
-    displayValidationErrors(errors);
-    return;
-  }
-
-  // Sanitize inputs (length limit and clean)
-  const sanitizedCompany = sanitizeUserInput(company, 100);
-  const sanitizedRole = sanitizeUserInput(role, 100);
-
-  const editId = currentEditId.get();
-  if (editId) {
-    // Validate that something actually changed
-    if (originalApplicationData) {
-      const hasChanges =
-        originalApplicationData.company !== sanitizedCompany ||
-        originalApplicationData.role !== sanitizedRole ||
-        originalApplicationData.dateApplied !== dateApplied ||
-        originalApplicationData.status !== status ||
-        originalApplicationData.visaSponsorship !== visaSponsorship;
-
-      if (!hasChanges) {
-        showInfoMessage('No changes detected. Nothing to update.');
-        return;
-      }
-    }
-    updateApplication(
-      editId,
-      sanitizedCompany,
-      sanitizedRole,
-      dateApplied,
-      status as ApplicationStatus,
-      visaSponsorship
-    );
-  } else {
-    addApplication(
-      sanitizedCompany,
-      sanitizedRole,
-      dateApplied,
-      status as ApplicationStatus,
-      visaSponsorship,
-      tags
-    );
-  }
-});
-
-function clearValidationErrors(): void {
-  const existingErrors = document.querySelectorAll('.validation-error');
-  existingErrors.forEach(error => error.remove());
-}
-
-function displayValidationErrors(errors: Array<{ field: string; message: string }>): void {
-  errors.forEach(error => {
-    const field = document.getElementById(error.field);
-    if (!field) return;
-
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'validation-error';
-    errorDiv.textContent = error.message;
-    field.parentElement?.appendChild(errorDiv);
-  });
-
-  const firstError = document.querySelector('.validation-error');
-  if (firstError) {
-    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
+// Logic moved to FormController
 // ========================================
-// FIREBASE OPERATIONS
+// EDIT / DELETE HANDLERS
 // ========================================
 
-function addApplication(
-  company: string,
-  role: string,
-  dateApplied: string,
-  status: ApplicationStatus,
-  visaSponsorship: boolean,
-  tags?: Tag[]
-): void {
-  if (!submitBtn) return;
+export async function editApplication(id: string): Promise<void> {
+  if (!formController || !appController) return;
 
-  // Rate limiting check
-  if (!rateLimiter.isAllowed('add-application')) {
-    securityLogger.log({
-      type: 'rate_limited',
-      message: 'Rate limit exceeded for add-application',
-      details: { operation: 'add-application' },
-    });
-    showErrorMessage('Too many requests. Please wait a moment before adding another application.');
-    return;
-  }
-
-  if (!isFirebaseReady()) {
-    showErrorMessage('Firebase not configured. Please set up your .env file.');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Application';
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Saving...';
-  animationService.animateButtonLoading(submitBtn);
-
-  // Check if user is authenticated
-  const user = authService.getCurrentUser();
-  if (!user) {
-    showErrorMessage('Please sign in to add applications.');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Application';
-    animationService.stopButtonLoading(submitBtn);
-    return;
-  }
-
-  // Use secure Firebase reference with user-specific path
-  const userPath = getUserApplicationsPath(user.uid);
-  const newApplicationRef = secureFirebaseRef(database!, userPath).push();
-
-  const applicationData: JobApplication = {
-    company,
-    role,
-    dateApplied,
-    status,
-    visaSponsorship,
-    timestamp: Date.now(),
-    id: newApplicationRef.key || '',
-    tags: tags && tags.length > 0 ? tags : undefined,
-  };
-
-  newApplicationRef
-    .set(applicationData)
-    .then(() => {
-      console.log('✅ Application saved successfully');
-      eventTrackingService.track('application_added', {
-        company,
-        status,
-        visaSponsorship,
-      });
-      showSuccessMessage('Application added successfully!');
-      form.reset();
-      clearTags();
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Add Application';
-      CacheManager.invalidate();
-    })
-    .catch((error: unknown) => {
-      console.error('❌ Error saving application:', error);
-      showErrorMessage('Failed to save application. Please try again.');
-      animationService.stopButtonLoading(submitBtn);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Add Application';
-    });
-}
-
-// ========================================
-// TAG MANAGEMENT FUNCTIONS
-// ========================================
-
-/**
- * Initialize tag management UI
- */
-function initializeTagManagement(): void {
-  const tagInput = document.getElementById('tag-input') as HTMLInputElement;
-  const addTagBtn = document.getElementById('add-tag-btn') as HTMLButtonElement;
-  const companyInput = document.getElementById('company') as HTMLInputElement;
-  const roleInput = document.getElementById('role') as HTMLInputElement;
-
-  if (!tagInput || !addTagBtn) return;
-
-  // Add tag on Enter or comma
-  tagInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const tagText = tagInput.value.trim();
-      if (tagText) {
-        addCustomTag(tagText);
-        tagInput.value = '';
-      }
-    }
-  });
-
-  // Add tag on button click
-  addTagBtn.addEventListener('click', () => {
-    const tagText = tagInput.value.trim();
-    if (tagText) {
-      addCustomTag(tagText);
-      tagInput.value = '';
-    }
-  });
-
-  // Update suggestions when company or role changes
-  if (companyInput) {
-    companyInput.addEventListener('input', () => updateTagSuggestions());
-  }
-  if (roleInput) {
-    roleInput.addEventListener('input', () => updateTagSuggestions());
-  }
-
-  // Initial suggestions update
-  updateTagSuggestions();
-
-  // Render tag categories
-  renderTagCategories();
-}
-
-/**
- * Add a custom tag
- */
-function addCustomTag(tagText: string): void {
-  // Create a custom tag (put it in a general category)
-  const customTag: Tag = {
-    id: `custom-${Date.now()}`,
-    name: tagText,
-    category: 'seniority', // Default category for custom tags
-  };
-
-  addTagToSelection(customTag);
-}
-
-/**
- * Add a tag to the selection
- */
-function addTagToSelection(tag: Tag): void {
-  // Check if tag is already selected
-  if (selectedTags.some(t => t.id === tag.id)) {
-    return;
-  }
-
-  selectedTags.push(tag);
-  renderSelectedTags();
-  updateTagSuggestions();
-}
-
-/**
- * Remove a tag from selection
- */
-function removeTagFromSelection(tagId: string): void {
-  selectedTags = selectedTags.filter(t => t.id !== tagId);
-  renderSelectedTags();
-  updateTagSuggestions();
-}
-
-/**
- * Render selected tags
- */
-function renderSelectedTags(): void {
-  const selectedTagsContainer = document.getElementById('selected-tags');
-  if (!selectedTagsContainer) return;
-
-  selectedTagsContainer.innerHTML = '';
-
-  selectedTags.forEach(tag => {
-    const tagElement = document.createElement('span');
-    tagElement.className = 'tag selected-tag';
-    tagElement.style.backgroundColor = tag.color || '#6b7280';
-
-    // Safely add tag name as text content to avoid HTML interpretation
-    tagElement.textContent = tag.name;
-
-    // Create remove button element explicitly instead of using innerHTML
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'tag-remove';
-    removeBtn.dataset.tagId = tag.id;
-    removeBtn.textContent = '×';
-
-    // Add remove event listener
-    removeBtn.addEventListener('click', () => removeTagFromSelection(tag.id));
-
-    tagElement.appendChild(removeBtn);
-    selectedTagsContainer.appendChild(tagElement);
-  });
-}
-
-/**
- * Render tag suggestions
- */
-function renderTagSuggestions(): void {
-  const suggestionsContainer = document.getElementById('tag-suggestions');
-  const suggestionsList = document.getElementById('suggestions-list');
-
-  if (!suggestionsContainer || !suggestionsList) return;
-
-  if (tagSuggestions.length === 0) {
-    suggestionsContainer.style.display = 'none';
-    return;
-  }
-
-  suggestionsContainer.style.display = 'block';
-  suggestionsList.innerHTML = '';
-
-  tagSuggestions.forEach(suggestion => {
-    const suggestionElement = document.createElement('button');
-    suggestionElement.type = 'button';
-    suggestionElement.className = 'tag-suggestion';
-    suggestionElement.style.backgroundColor = suggestion.tag.color || '#6b7280';
-
-    // Safely add tag name as text content
-    suggestionElement.textContent = suggestion.tag.name;
-
-    // Create confidence span element explicitly
-    const confidenceSpan = document.createElement('span');
-    confidenceSpan.className = 'confidence';
-    confidenceSpan.textContent = `(${Math.round(suggestion.confidence * 100)}%)`;
-
-    suggestionElement.appendChild(confidenceSpan);
-
-    suggestionElement.addEventListener('click', () => {
-      addTagToSelection(suggestion.tag);
-    });
-
-    suggestionsList.appendChild(suggestionElement);
-  });
-}
-
-/**
- * Render tag categories for quick add
- */
-function renderTagCategories(): void {
-  const categoriesContainer = document.getElementById('tag-categories-list');
-  if (!categoriesContainer) return;
-
-  categoriesContainer.innerHTML = '';
-
-  const categories = TaggingService.getAllTags();
-
-  // Show a few popular tags from each category
-  Object.entries(categories).forEach(([categoryName, tags]) => {
-    if (tags.length === 0) return;
-
-    const categoryDiv = document.createElement('div');
-    categoryDiv.className = 'tag-category';
-
-    const categoryTitle = document.createElement('span');
-    categoryTitle.className = 'category-title';
-    categoryTitle.textContent = categoryName.replace('-', ' ').toUpperCase() + ':';
-    categoryDiv.appendChild(categoryTitle);
-
-    // Show first 3 tags from each category
-    tags.slice(0, 3).forEach(tag => {
-      const tagBtn = document.createElement('button');
-      tagBtn.type = 'button';
-      tagBtn.className = 'quick-tag-btn';
-      tagBtn.style.backgroundColor = tag.color || '#6b7280';
-      tagBtn.textContent = tag.name;
-      tagBtn.addEventListener('click', () => addTagToSelection(tag));
-      categoryDiv.appendChild(tagBtn);
-    });
-
-    categoriesContainer.appendChild(categoryDiv);
-  });
-}
-
-/**
- * Update tag suggestions based on current application data
- */
-function updateTagSuggestions(): void {
-  const companyInput = document.getElementById('company') as HTMLInputElement;
-  const roleInput = document.getElementById('role') as HTMLInputElement;
-
-  if (!companyInput || !roleInput) return;
-
-  const company = companyInput.value.trim();
-  const role = roleInput.value.trim();
-
-  if (!company && !role) {
-    tagSuggestions = [];
-    renderTagSuggestions();
-    return;
-  }
-
-  // Create a temporary application object for suggestions
-  const tempApplication: JobApplication = {
-    id: '',
-    company,
-    role,
-    dateApplied: '',
-    status: 'Applied',
-    visaSponsorship: false,
-    timestamp: Date.now(),
-  };
-
-  // Get suggestions, excluding already selected tags
-  tagSuggestions = TaggingService.generateTagSuggestions(tempApplication).filter(
-    suggestion => !selectedTags.some(selected => selected.id === suggestion.tag.id)
-  );
-
-  renderTagSuggestions();
-}
-
-/**
- * Clear all tags
- */
-function clearTags(): void {
-  selectedTags = [];
-  tagSuggestions = [];
-  renderSelectedTags();
-  renderTagSuggestions();
-}
-
-/**
- * Get selected tags for form submission
- */
-function getSelectedTags(): Tag[] {
-  return [...selectedTags];
-}
-
-function updateApplication(
-  id: string,
-  company: string,
-  role: string,
-  dateApplied: string,
-  status: ApplicationStatus,
-  visaSponsorship: boolean
-): void {
-  if (!submitBtn) return;
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Updating...';
-
-  const updatedData = {
-    company,
-    role,
-    dateApplied,
-    status,
-    visaSponsorship,
-    updatedAt: Date.now(),
-  };
-
-  if (!isFirebaseReady()) {
-    showErrorMessage('Firebase not configured. Please set up your .env file.');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Update Application';
-    return;
-  }
-
-  // Check if user is authenticated
-  const user = authService.getCurrentUser();
-  if (!user) {
-    showErrorMessage('Please sign in to update applications.');
-    return;
-  }
-
-  // Use secure Firebase wrapper with user-specific path
-  const userPath = getUserApplicationsPath(user.uid);
-  secureFirebaseUpdate(database!, userPath, id, updatedData)
-    .then(() => {
-      console.log('✅ Application updated successfully');
-      const oldStatus = originalApplicationData?.status;
-      if (oldStatus && oldStatus !== status) {
-        eventTrackingService.track('status_changed', {
-          applicationId: id,
-          fromStatus: oldStatus,
-          toStatus: status,
-        });
-
-        // Animate status change
-        const statusBadge = document.querySelector(
-          `[data-app-id="${id}"] .status-badge`
-        ) as HTMLElement;
-        const card = document.querySelector(`[data-app-id="${id}"]`) as HTMLElement;
-        if (statusBadge) {
-          // Get status color from CSS or use default
-          const statusColors: Record<string, string> = {
-            Applied: '#dbeafe',
-            'Phone Screen': '#fef3c7',
-            'Technical Interview': '#fce7f3',
-            'Final Round': '#e0e7ff',
-            Offer: '#d1fae5',
-            Rejected: '#fee2e2',
-          };
-          const newColor = statusColors[status] || '#dbeafe';
-          animationService.animateStatusChange(statusBadge, newColor);
-        }
-        if (card) {
-          animationService.animateHighlight(card);
-        }
-      }
-      eventTrackingService.track('application_updated', {
-        applicationId: id,
-        company,
-      });
-      showSuccessMessage(`Application for ${company} updated successfully!`);
-      originalApplicationData = null; // Clear stored data after successful update
-      cancelEdit();
-      animationService.stopButtonLoading(submitBtn);
-      submitBtn.disabled = false;
-      CacheManager.invalidate();
-    })
-    .catch((error: unknown) => {
-      console.error('❌ Error updating application:', error);
-
-      securityLogger.log({
-        type: 'unauthorized_access',
-        message: 'Failed to update application',
-        details: { operation: 'update-application', id, error: String(error).substring(0, 100) },
-      });
-
-      showErrorMessage('Failed to update application. Please try again.');
-      animationService.stopButtonLoading(submitBtn);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Update Application';
-    });
-}
-
-export function deleteApplication(id: string): void {
-  // 1. Validate application ID early
   try {
     validateApplicationId(id);
-  } catch (error) {
-    showErrorMessage('Invalid application ID. Operation cancelled.');
-    console.error('Security: Invalid ID attempted:', error);
-    return;
-  }
-
-  // 2. Ensure Firebase is ready
-  if (!isFirebaseReady()) {
-    showErrorMessage('Firebase not configured. Please set up your .env file.');
-    return;
-  }
-
-  // 3. Capture auth context ONCE
-  const user = authService.getCurrentUser();
-  if (!user) {
-    showErrorMessage('Please sign in to delete applications.');
-    return;
-  }
-
-  const userPath = getUserApplicationsPath(user.uid);
-
-  // 4. Rate limiting (user-scoped)
-  if (!rateLimiter.isAllowed(`delete-application:${user.uid}`)) {
-    showErrorMessage('Too many requests. Please wait a moment before deleting again.');
-    return;
-  }
-
-  console.log('Deleting application:', id);
-
-  // 5. Secure read before delete (ownership + existence check)
-  secureFirebaseRead(database!, userPath, id)
-    .then((snapshot: firebase.database.DataSnapshot) => {
-      const app = snapshot.val() as JobApplication | null;
-
-      if (!app) {
-        showErrorMessage('Application not found!');
-        return;
-      }
-
-      const confirmed = confirm(
-        `Are you sure you want to delete the application for ${escapeHtml(app.company || 'Unknown')}?\n\n` +
-          `Role: ${escapeHtml(app.role || 'Unknown')}\n` +
-          `This action cannot be undone.`
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      // 6. Locate card once (safe due to strict ID validation)
-      const card = document.querySelector(
-        `[data-app-id="${id}"], [data-id="${id}"]`
-      ) as HTMLElement | null;
-
-      // 7. Secure delete using SAME auth context + path
-      return secureFirebaseDelete(database!, userPath, id)
-        .then(() => {
-          console.log('✅ Application deleted successfully');
-
-          eventTrackingService.track('application_deleted', {
-            applicationId: id,
-            company: app.company,
-          });
-
-          const onComplete = () => {
-            showSuccessMessage(`Application for ${escapeHtml(app.company || 'Unknown')} deleted`);
-            CacheManager.invalidate();
-          };
-
-          // 8. Animate if possible
-          if (card) {
-            animationService.animateCardDeletion(card, onComplete);
-          } else {
-            onComplete();
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('❌ Error deleting application:', error);
-
-          securityLogger.log({
-            type: 'unauthorized_access',
-            message: 'Failed to delete application',
-            details: {
-              operation: 'delete-application',
-              userId: user.uid,
-              applicationId: id,
-              error: String(error).substring(0, 100),
-            },
-          });
-
-          showErrorMessage('Failed to delete application. Please try again.');
-        });
-    })
-    .catch((error: unknown) => {
-      console.error('Error loading application:', error);
-
-      securityLogger.log({
-        type: 'unauthorized_access',
-        message: 'Failed to load application for deletion',
-        details: {
-          operation: 'delete-application',
-          userId: user.uid,
-          applicationId: id,
-          error: String(error).substring(0, 100),
-        },
-      });
-
-      showErrorMessage('Error loading application data.');
-    });
-}
-
-// ========================================
-// EDIT MODE FUNCTIONS
-// ========================================
-
-export function editApplication(id: string): void {
-  // Check authentication first
-  const user = authService.getCurrentUser();
-  if (!user) {
-    showErrorMessage('Please sign in to edit applications.');
-    return;
-  }
-
-  if (!database) {
-    showErrorMessage('Firebase not configured. Please set up your .env file.');
-    return;
-  }
-
-  // Validate application ID to prevent injection
-  try {
-    validateApplicationId(id);
-  } catch (error) {
-    showErrorMessage('Invalid application ID. Operation cancelled.');
-    console.error('Security: Invalid ID attempted:', error);
-    return;
-  }
-
-  console.log('Editing application:', id);
-
-  // Use secure Firebase read with user-specific path
-  const userPath = getUserApplicationsPath(user.uid);
-  secureFirebaseRead(database!, userPath, id)
-    .then((snapshot: firebase.database.DataSnapshot) => {
-      const app = snapshot.val() as JobApplication | null;
-
-      if (!app) {
-        showErrorMessage('Application not found!');
-        return;
-      }
-
-      // Store original data for change detection
-      originalApplicationData = {
-        ...app,
-        id: id,
-      };
-
-      // Populate form fields
-      (document.getElementById('company') as HTMLInputElement).value = app.company || '';
-      (document.getElementById('role') as HTMLInputElement).value = app.role || '';
-      (document.getElementById('status') as HTMLInputElement).value = app.dateApplied || '';
-      (document.getElementById('status') as HTMLSelectElement).value = app.status || '';
-      (document.getElementById('visa') as HTMLInputElement).checked = app.visaSponsorship || false;
-
-      // Populate tags
-      selectedTags = app.tags || [];
-      renderSelectedTags();
-      updateTagSuggestions();
-
-      // Switch to edit mode
-      setCurrentEditId(id);
-      if (submitBtn) {
-        submitBtn.textContent = 'Update Application';
-        submitBtn.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
-      }
-
-      // Scroll to form
-      document.getElementById('form-section')?.scrollIntoView({
-        behavior: 'smooth',
-      });
-
-      // Show edit mode indicator
-      showEditModeIndicator(app.company);
-    })
-    .catch((error: unknown) => {
-      console.error('Error loading application:', error);
-      showErrorMessage('Error loading application data');
-    });
-}
-
-function showEditModeIndicator(companyName: string): void {
-  const existingIndicator = document.getElementById('edit-mode-indicator');
-  if (existingIndicator) {
-    existingIndicator.remove();
-  }
-
-  const indicator = document.createElement('div');
-  indicator.id = 'edit-mode-indicator';
-  indicator.className = 'edit-mode-indicator';
-
-  const span = document.createElement('span');
-  const strong = document.createElement('strong');
-  strong.textContent = escapeHtml(companyName);
-  span.appendChild(document.createTextNode('✏️ Editing: '));
-  span.appendChild(strong);
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn-cancel-edit';
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', cancelEdit);
-
-  indicator.appendChild(span);
-  indicator.appendChild(cancelBtn);
-
-  const formSection = document.getElementById('form-section');
-  const form = document.getElementById('application-form');
-  if (formSection && form) {
-    formSection.insertBefore(indicator, form);
+    const app = await appController.getApplication(id);
+    if (app) {
+      formController.setEditMode(app);
+    }
+  } catch (error: any) {
+    showErrorMessage(error.message || 'Failed to fetch application for editing.');
   }
 }
 
 export function cancelEdit(): void {
-  setCurrentEditId(null);
-  originalApplicationData = null; // Clear stored original data
-  form.reset();
-  if (submitBtn) {
-    submitBtn.textContent = 'Add Application';
-    submitBtn.style.background =
-      'linear-gradient(135deg, var(--slate-900) 0%, var(--slate-950) 100%)';
-  }
-
-  const indicator = document.getElementById('edit-mode-indicator');
-  if (indicator) {
-    indicator.remove();
-  }
-
-  clearValidationErrors();
-  console.log('Edit cancelled - returned to add mode');
+  formController?.cancelEdit();
 }
 
-// ========================================
-// MESSAGES
-// ========================================
+export async function deleteApplication(id: string): Promise<void> {
+  if (!appController) return;
 
-function showSuccessMessage(message: string): void {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'success-message';
-  messageDiv.textContent = message;
+  try {
+    validateApplicationId(id);
 
-  const formSection = document.getElementById('form-section');
-  const form = document.getElementById('application-form');
-  if (formSection && form) {
-    formSection.insertBefore(messageDiv, form);
+    // Get app details from store for confirmation dialog
+    const allApps = applications.get();
+    const app = allApps.find(a => a.id === id);
+    const companyName = app ? app.company : 'Unknown Application';
+
+    if (!confirm(`Are you sure you want to delete the application for ${escapeHtml(companyName)}?`)) {
+      return;
+    }
+
+    await appController.deleteApplication(id);
+    showSuccessMessage('Application deleted successfully!');
+  } catch (error: any) {
+    showErrorMessage(error.message || 'Failed to delete application.');
   }
-
-  setTimeout(() => {
-    messageDiv.remove();
-  }, 3000);
 }
 
-function showErrorMessage(message: string): void {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'error-message';
-  messageDiv.textContent = message;
-
-  const formSection = document.getElementById('form-section');
-  const form = document.getElementById('application-form');
-  if (formSection && form) {
-    formSection.insertBefore(messageDiv, form);
-    animationService.animateMessage(messageDiv, 'error');
-  }
-
-  setTimeout(() => {
-    messageDiv.remove();
-  }, 5000);
-}
-
-function showInfoMessage(message: string): void {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'info-message';
-  messageDiv.textContent = message;
-
-  const formSection = document.getElementById('form-section');
-  const form = document.getElementById('application-form');
-  if (formSection && form) {
-    formSection.insertBefore(messageDiv, form);
-    animationService.animateMessage(messageDiv, 'info');
-  }
-
-  setTimeout(() => {
-    messageDiv.remove();
-  }, 3000);
-}
 
 // ========================================
 // LOAD APPLICATIONS WITH CACHING
@@ -1023,7 +247,7 @@ function showInfoMessage(message: string): void {
 
 function loadApplications(): void {
   // Check if Firebase is initialized
-  if (!isFirebaseReady()) {
+  if (!isFirebaseReady() || !appController) {
     console.warn('⚠️ Cannot load applications: Firebase not initialized');
     // Try to load from cache only
     const cached = CacheManager.load();
@@ -1054,13 +278,11 @@ function loadApplications(): void {
     return;
   }
 
-  // Listen for data changes in Firebase with user-specific path
-  const userPath = getUserApplicationsPath(user.uid);
-  const applicationsRef = secureFirebaseRef(database!, userPath);
-  applicationsRef.on('value', (snapshot: firebase.database.DataSnapshot) => {
-    const applicationsData = snapshot.val() as Record<string, Omit<JobApplication, 'id'>> | null;
-
-    if (!applicationsData) {
+  // Subscribe using controller
+  // Note: We are not storing the unsubscribe function here as this is a top-level listener.
+  // In a component refactor, we would handle cleanup.
+  appController.subscribeToApplications((apps) => {
+    if (apps.length === 0) {
       if (applicationsContainer) {
         applicationsContainer.innerHTML = '';
         const message = document.createElement('p');
@@ -1074,26 +296,11 @@ function loadApplications(): void {
       return;
     }
 
-    // Convert to array
-    const applicationsArray: JobApplication[] = Object.keys(applicationsData).map(key => {
-      const appData = (applicationsData as Record<string, Partial<JobApplication>>)[key];
-      return {
-        id: key,
-        company: appData?.company || '',
-        role: appData?.role || '',
-        dateApplied: appData?.dateApplied || '',
-        status: (appData?.status || 'Applied') as ApplicationStatus,
-        visaSponsorship: appData?.visaSponsorship || false,
-        timestamp: appData?.timestamp || Date.now(),
-        updatedAt: appData?.updatedAt,
-      } as JobApplication;
-    });
-
-    setApplications(applicationsArray);
-    CacheManager.save(applicationsArray);
+    setApplications(apps);
+    CacheManager.save(apps);
     processAndDisplayApplications();
 
-    console.log(`📊 Loaded ${applicationsArray.length} applications from Firebase`);
+    console.log(`📊 Loaded ${apps.length} applications from Firebase`);
   });
 }
 
@@ -1485,8 +692,12 @@ function handleImportResult(result: ImportResult): void {
   if (result.imported.length > 0) {
     saveImportedApplications(result.imported)
       .then(() => {
-        // Success/warning messages are now handled in saveImportedApplications
-        // based on actual imports vs duplicates
+        // Success handling moved to saveImportedApplications mostly,
+        // but we can add a generic success message here if needed.
+        // Wait, saveImportedApplications returns void now. 
+        // We relying on it to show "Skipped X duplicates".
+        // Use a generic "Import complete" message?
+        showSuccessMessage('Import processing complete.');
 
         eventTrackingService.track('application_added', {
           importedCount: result.imported.length,
@@ -1512,7 +723,7 @@ function handleImportResult(result: ImportResult): void {
 }
 
 async function saveImportedApplications(applications: JobApplication[]): Promise<void> {
-  if (!isFirebaseReady()) {
+  if (!isFirebaseReady() || !appController) {
     throw new Error('Firebase not configured');
   }
 
@@ -1521,74 +732,29 @@ async function saveImportedApplications(applications: JobApplication[]): Promise
     throw new Error('User not authenticated');
   }
 
-  const userPath = getUserApplicationsPath(user.uid);
-  const applicationsRef = secureFirebaseRef(database!, userPath);
+  try {
+    const result = await appController.importApplications(applications);
 
-  // First, fetch existing applications to check for duplicates
-  const snapshot = await applicationsRef.once('value');
-  const existingData = snapshot.val() as Record<string, Partial<JobApplication>> | null;
+    if (result.skipped > 0) {
+      showInfoMessage(
+        `Skipped ${result.skipped} duplicate application${result.skipped !== 1 ? 's' : ''} (same company, role, and date already exist)`
+      );
+    }
 
-  const existingApps: JobApplication[] = existingData
-    ? Object.keys(existingData).map(key => {
-        const appData = existingData[key];
-        return {
-          id: key,
-          company: appData?.company || '',
-          role: appData?.role || '',
-          dateApplied: appData?.dateApplied || '',
-          status: (appData?.status || 'Applied') as ApplicationStatus,
-          visaSponsorship: appData?.visaSponsorship || false,
-          timestamp: appData?.timestamp || Date.now(),
-          updatedAt: appData?.updatedAt,
-          tags: appData?.tags,
-        } as JobApplication;
-      })
-    : [];
+    if (result.added === 0 && result.skipped > 0) {
+      // All skipped
+      return;
+    }
 
-  // Filter out duplicates based on company, role, and dateApplied
-  const newApplications = applications.filter(app => {
-    const isDuplicate = existingApps.some(
-      existing =>
-        existing.company.toLowerCase().trim() === app.company.toLowerCase().trim() &&
-        existing.role.toLowerCase().trim() === app.role.toLowerCase().trim() &&
-        existing.dateApplied === app.dateApplied
-    );
-    return !isDuplicate;
-  });
-
-  // Show info if duplicates were found
-  const duplicateCount = applications.length - newApplications.length;
-  if (duplicateCount > 0) {
-    showInfoMessage(
-      `Skipped ${duplicateCount} duplicate application${duplicateCount !== 1 ? 's' : ''} (same company, role, and date already exist)`
-    );
-  }
-
-  // If no new applications to add, return early
-  if (newApplications.length === 0) {
-    return;
-  }
-
-  // Save only the new applications
-  const savePromises = newApplications.map(app => {
-    const newRef = applicationsRef.push();
-    const appData = {
-      ...app,
-      id: newRef.key || app.id,
-      timestamp: Date.now(),
-    };
-    return newRef.set(appData);
-  });
-
-  await Promise.all(savePromises);
-
-  // Update success message to reflect actual imports
-  if (newApplications.length < applications.length) {
-    showSuccessMessage(
-      `Successfully imported ${newApplications.length} new application${newApplications.length !== 1 ? 's' : ''}!`
-    );
+    // Success handling is done by caller usually, but here we just return promise.
+    // eventTrackingService lines in caller (handleImportResult) might need updating via result return?
+    // handleImportResult calls this. 
+    // We need to return valid promise.
+  } catch (error) {
+    throw error;
   }
 }
+
 
 function showImportErrorReport(errors: ImportError[]): void {
   const errorReport = generateErrorReport(errors);
@@ -2119,40 +1285,40 @@ function updateAuthUI(): void {
     const form =
       currentAuthView === 'login'
         ? createLoginForm({
-            onSuccess: () => {
-              // Auth state change will update UI automatically
-            },
-            onSwitchToSignUp: () => {
-              currentAuthView = 'signup';
-              updateAuthUI();
-            },
+          onSuccess: () => {
+            // Auth state change will update UI automatically
+          },
+          onSwitchToSignUp: () => {
+            currentAuthView = 'signup';
+            updateAuthUI();
+          },
 
-            onContinueAsGuest: () => {
-              console.log('👤 Continuing as Guest');
-              // Generate demo data if empty
-              const currentApps = applications.get();
-              if (currentApps.length === 0) {
-                const demoApps = generateDemoData(100);
-                setApplications(demoApps);
-                CacheManager.save(demoApps);
-                console.log('🎉 Demo data generated');
-                showSuccessMessage('Demo data loaded! You are in Guest Mode.');
-              } else {
-                showInfoMessage('Welcome back! You are in Guest Mode.');
-              }
+          onContinueAsGuest: () => {
+            console.log('👤 Continuing as Guest');
+            // Generate demo data if empty
+            const currentApps = applications.get();
+            if (currentApps.length === 0) {
+              const demoApps = generateDemoData(100);
+              setApplications(demoApps);
+              CacheManager.save(demoApps);
+              console.log('🎉 Demo data generated');
+              showSuccessMessage('Demo data loaded! You are in Guest Mode.');
+            } else {
+              showInfoMessage('Welcome back! You are in Guest Mode.');
+            }
 
-              // Hide Auth UI and switch to Guest Header
-              if (authContainer) {
-                authContainer.innerHTML = '';
-                authContainer.classList.remove('is-modal'); // Remove modal overlay
+            // Hide Auth UI and switch to Guest Header
+            if (authContainer) {
+              authContainer.innerHTML = '';
+              authContainer.classList.remove('is-modal'); // Remove modal overlay
 
-                // Render Guest Header with Exit button
-                const guestHeader = document.createElement('div');
-                guestHeader.style.display = 'flex';
-                guestHeader.style.gap = '1rem';
-                guestHeader.style.alignItems = 'center';
+              // Render Guest Header with Exit button
+              const guestHeader = document.createElement('div');
+              guestHeader.style.display = 'flex';
+              guestHeader.style.gap = '1rem';
+              guestHeader.style.alignItems = 'center';
 
-                guestHeader.innerHTML = `
+              guestHeader.innerHTML = `
               <div style="display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #e2e8f0;">
                 <span style="font-size: 1.2rem;">👤</span>
                 <span style="font-size: 0.875rem; font-weight: 600; color: #475569;">Guest Mode</span>
@@ -2162,41 +1328,41 @@ function updateAuthUI(): void {
               </button>
             `;
 
-                authContainer.appendChild(guestHeader);
+              authContainer.appendChild(guestHeader);
 
-                // Add Exit Listener
-                document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
-                  window.location.reload();
-                });
-              }
+              // Add Exit Listener
+              document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
+                window.location.reload();
+              });
+            }
 
-              // Enable app (read-only mostly, but allow interaction)
-              updateFormAuthState(null); // Guest is null user
+            // Enable app (read-only mostly, but allow interaction)
+            updateFormAuthState(null); // Guest is null user
 
-              // In guest mode, we want to allow form interaction but maybe warn on save?
-              // For now, let's just enable the UI so they can see data.
-              // Override form disabled state for guest viewing
-              const form = document.getElementById('application-form') as HTMLFormElement;
-              const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-              if (form && submitBtn) {
-                form.classList.remove('form-disabled');
-                form.style.opacity = '1';
-                form.style.pointerEvents = 'auto';
-                submitBtn.textContent = 'Sign In to Save';
-              }
+            // In guest mode, we want to allow form interaction but maybe warn on save?
+            // For now, let's just enable the UI so they can see data.
+            // Override form disabled state for guest viewing
+            const form = document.getElementById('application-form') as HTMLFormElement;
+            const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+            if (form && submitBtn) {
+              form.classList.remove('form-disabled');
+              form.style.opacity = '1';
+              form.style.pointerEvents = 'auto';
+              submitBtn.textContent = 'Sign In to Save';
+            }
 
-              processAndDisplayApplications();
-            },
-          })
+            processAndDisplayApplications();
+          },
+        })
         : createSignUpForm({
-            onSuccess: () => {
-              // Auth state change will update UI automatically
-            },
-            onSwitchToLogin: () => {
-              currentAuthView = 'login';
-              updateAuthUI();
-            },
-          });
+          onSuccess: () => {
+            // Auth state change will update UI automatically
+          },
+          onSwitchToLogin: () => {
+            currentAuthView = 'login';
+            updateAuthUI();
+          },
+        });
 
     authContainer.appendChild(form);
     animationService.animateCardEntrance([form]);
@@ -2320,8 +1486,11 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Initialize tag management
-  initializeTagManagement();
+  // Dashboard Animations
+  const statsCards = document.querySelectorAll('.stats-card');
+  if (statsCards.length > 0) {
+    animationService.animateCardEntrance(statsCards as NodeListOf<HTMLElement>, { delay: 50 });
+  }
 
   // Initialize filter event listeners (replacing inline handlers)
   const dateRangeFilter = document.getElementById('date-range-filter') as HTMLSelectElement;
@@ -2329,40 +1498,25 @@ window.addEventListener('DOMContentLoaded', () => {
   const sortSelect = document.getElementById('sort-select') as HTMLSelectElement;
   const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
 
-  // Add form field focus animations
-  const formFields = form?.querySelectorAll('input, select, textarea');
-  formFields?.forEach(field => {
-    field.addEventListener('focus', () => {
-      animationService.animateFormFieldFocus(field as HTMLElement);
-    });
-    field.addEventListener('blur', () => {
-      animationService.animateFormFieldBlur(field as HTMLElement);
-    });
-  });
-
-  // Initialize sort dropdown
-  if (sortSelect) {
-    sortSelect.value = sortBy.get().value;
-  }
-
+  // Initialize filter event listeners
   if (dateRangeFilter) {
-    dateRangeFilter.addEventListener('change', e => {
-      const target = e.target as HTMLSelectElement;
-      handleDateRangeChange(target.value);
+    dateRangeFilter.value = filters.get().dateRange || 'all';
+    dateRangeFilter.addEventListener('change', (e: Event) => {
+      handleDateRangeChange((e.target as HTMLSelectElement).value);
     });
   }
 
   if (visaFilter) {
-    visaFilter.addEventListener('change', e => {
-      const target = e.target as HTMLSelectElement;
-      handleVisaFilterChange(target.value);
+    visaFilter.value = String(filters.get().visaSponsorship) || 'all';
+    visaFilter.addEventListener('change', (e: Event) => {
+      handleVisaFilterChange((e.target as HTMLSelectElement).value);
     });
   }
 
   if (sortSelect) {
-    sortSelect.addEventListener('change', e => {
-      const target = e.target as HTMLSelectElement;
-      handleSortChange(target.value);
+    sortSelect.value = sortBy.get().value;
+    sortSelect.addEventListener('change', (e: Event) => {
+      handleSortChange((e.target as HTMLSelectElement).value);
     });
   }
 
@@ -2405,15 +1559,15 @@ window.addEventListener('DOMContentLoaded', () => {
 // Make functions globally accessible for inline handlers
 (
   window as Window &
-    typeof globalThis & {
-      editApplication: typeof editApplication;
-      deleteApplication: typeof deleteApplication;
-      cancelEdit: typeof cancelEdit;
-      clearAllFilters: typeof clearAllFilters;
-      handleDateRangeChange: typeof handleDateRangeChange;
-      handleVisaFilterChange: typeof handleVisaFilterChange;
-      handleSortChange: typeof handleSortChange;
-    }
+  typeof globalThis & {
+    editApplication: typeof editApplication;
+    deleteApplication: typeof deleteApplication;
+    cancelEdit: typeof cancelEdit;
+    clearAllFilters: typeof clearAllFilters;
+    handleDateRangeChange: typeof handleDateRangeChange;
+    handleVisaFilterChange: typeof handleVisaFilterChange;
+    handleSortChange: typeof handleSortChange;
+  }
 ).editApplication = editApplication;
 (window as any).deleteApplication = deleteApplication;
 (window as any).cancelEdit = cancelEdit;

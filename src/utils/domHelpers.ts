@@ -120,3 +120,59 @@ export function createSafeHTML(template: string, values: Record<string, string>)
 
   return safeHTML;
 }
+/**
+ * Show a success message
+ */
+export function showSuccessMessage(message: string): void {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'success-message';
+  messageDiv.textContent = message;
+
+  const formSection = document.getElementById('form-section');
+  const form = document.getElementById('application-form');
+  if (formSection && form) {
+    formSection.insertBefore(messageDiv, form);
+  }
+
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 3000);
+}
+
+/**
+ * Show an error message
+ */
+export function showErrorMessage(message: string): void {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'error-message';
+  messageDiv.textContent = message;
+
+  const formSection = document.getElementById('form-section');
+  const form = document.getElementById('application-form');
+  if (formSection && form) {
+    formSection.insertBefore(messageDiv, form);
+  }
+
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 5000);
+}
+
+/**
+ * Show an info message
+ */
+export function showInfoMessage(message: string): void {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'info-message';
+  messageDiv.textContent = message;
+
+  const formSection = document.getElementById('form-section');
+  const form = document.getElementById('application-form');
+  if (formSection && form) {
+    formSection.insertBefore(messageDiv, form);
+  }
+
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 3000);
+}
