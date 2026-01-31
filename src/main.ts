@@ -32,13 +32,13 @@ import {
 } from './utils/security';
 import { ApplicationController } from './controllers/ApplicationController';
 import { FormController, FormElements } from './controllers/FormController';
+import { AuthManager } from './controllers/AuthManager';
 import {
   createApplicationCardSafe,
   showSuccessMessage,
   showErrorMessage,
   showInfoMessage
 } from './utils/domHelpers';
-import { generateDemoData } from './utils/demoData';
 import { exportToCSV } from './utils/exportHelpers';
 import {
   triggerCSVImport,
@@ -49,11 +49,8 @@ import {
 } from './utils/importHelpers';
 import { animationService } from './services/animationService';
 import { authService } from './services/authService';
-import { createLoginForm } from './components/auth/LoginForm';
-import { createSignUpForm } from './components/auth/SignUpForm';
-import { createUserProfile } from './components/auth/UserProfile';
 
-import type { JobApplication, ApplicationStatus, SortOption, ApplicationFilters } from './types';
+import type { JobApplication, ApplicationStatus, SortOption, ApplicationFilters, User } from './types';
 
 // Initialize PWA Install Prompt
 new PwaInstallPrompt();
@@ -64,6 +61,7 @@ let database: firebase.database.Database | undefined;
 let auth: firebase.auth.Auth | undefined;
 let appController: ApplicationController | undefined;
 let formController: FormController | undefined;
+let authManager: AuthManager | undefined;
 
 // Initialize Firebase
 function initializeFirebase(): boolean {
@@ -117,6 +115,30 @@ function initializeFirebase(): boolean {
 
     formController = new FormController(formElements, appController);
     formController.init();
+
+    // Initialize Auth Manager
+    authManager = new AuthManager({
+      onUserChange: (user) => {
+        if (user) {
+          loadApplications();
+        } else {
+          updateFormAuthState(null);
+        }
+      },
+      onGuestMode: () => {
+        // Explicitly enable form for Guest viewing
+        const appForm = document.getElementById('application-form') as HTMLFormElement;
+        const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+        if (appForm && submitBtn) {
+          appForm.classList.remove('form-disabled');
+          appForm.style.opacity = '1';
+          appForm.style.pointerEvents = 'auto';
+          submitBtn.textContent = 'Sign In to Save';
+        }
+        processAndDisplayApplications();
+      }
+    });
+    authManager.init();
 
     console.log('🔥 Firebase initialized');
     return true;
@@ -1233,146 +1255,10 @@ export function handleSortChange(value: string): void {
   processAndDisplayApplications();
 }
 
-// ========================================
-// AUTHENTICATION UI
-// ========================================
-
-let currentAuthView: 'login' | 'signup' = 'login';
-let authContainer: HTMLElement | null = null;
-
-/**
- * Render authentication UI
- */
-function renderAuthUI(): void {
-  const header = document.querySelector('header');
-  if (!header) return;
-
-  // Create auth container
-  authContainer = document.createElement('div');
-  authContainer.id = 'auth-container';
-  authContainer.className = 'auth-container';
-
-  // Add to header
-  header.appendChild(authContainer);
-
-  // Initial render
-  updateAuthUI();
-}
-
-/**
- * Update auth UI based on current state
- */
-function updateAuthUI(): void {
-  if (!authContainer) return;
-
-  const user = authService.getCurrentUser();
-
-  if (user) {
-    // User is authenticated - show profile
-    authContainer.innerHTML = '';
-    authContainer.classList.remove('is-modal'); // Switch to inline mode
-    const profile = createUserProfile(user, {
-      onSignOut: () => {
-        handleSignOut();
-      },
-    });
-    authContainer.appendChild(profile);
-    animationService.animateCardEntrance([profile]);
-  } else {
-    // User is not authenticated - show login/signup
-    authContainer.innerHTML = '';
-    authContainer.classList.add('is-modal'); // Switch to modal mode
-    const form =
-      currentAuthView === 'login'
-        ? createLoginForm({
-          onSuccess: () => {
-            // Auth state change will update UI automatically
-          },
-          onSwitchToSignUp: () => {
-            currentAuthView = 'signup';
-            updateAuthUI();
-          },
-
-          onContinueAsGuest: () => {
-            console.log('👤 Continuing as Guest');
-            // Generate demo data if empty
-            const currentApps = applications.get();
-            if (currentApps.length === 0) {
-              const demoApps = generateDemoData(100);
-              setApplications(demoApps);
-              CacheManager.save(demoApps);
-              console.log('🎉 Demo data generated');
-              showSuccessMessage('Demo data loaded! You are in Guest Mode.');
-            } else {
-              showInfoMessage('Welcome back! You are in Guest Mode.');
-            }
-
-            // Hide Auth UI and switch to Guest Header
-            if (authContainer) {
-              authContainer.innerHTML = '';
-              authContainer.classList.remove('is-modal'); // Remove modal overlay
-
-              // Render Guest Header with Exit button
-              const guestHeader = document.createElement('div');
-              guestHeader.style.display = 'flex';
-              guestHeader.style.gap = '1rem';
-              guestHeader.style.alignItems = 'center';
-
-              guestHeader.innerHTML = `
-              <div style="display: flex; align-items: center; gap: 0.5rem; background: #f1f5f9; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #e2e8f0;">
-                <span style="font-size: 1.2rem;">👤</span>
-                <span style="font-size: 0.875rem; font-weight: 600; color: #475569;">Guest Mode</span>
-              </div>
-              <button id="exit-guest-btn" style="background: none; border: none; color: #dc2626; font-weight: 600; font-size: 0.875rem; cursor: pointer; padding: 0.5rem; transition: opacity 0.2s;">
-                Exit
-              </button>
-            `;
-
-              authContainer.appendChild(guestHeader);
-
-              // Add Exit Listener
-              document.getElementById('exit-guest-btn')?.addEventListener('click', () => {
-                window.location.reload();
-              });
-            }
-
-            // Enable app (read-only mostly, but allow interaction)
-            updateFormAuthState(null); // Guest is null user
-
-            // In guest mode, we want to allow form interaction but maybe warn on save?
-            // For now, let's just enable the UI so they can see data.
-            // Override form disabled state for guest viewing
-            const form = document.getElementById('application-form') as HTMLFormElement;
-            const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-            if (form && submitBtn) {
-              form.classList.remove('form-disabled');
-              form.style.opacity = '1';
-              form.style.pointerEvents = 'auto';
-              submitBtn.textContent = 'Sign In to Save';
-            }
-
-            processAndDisplayApplications();
-          },
-        })
-        : createSignUpForm({
-          onSuccess: () => {
-            // Auth state change will update UI automatically
-          },
-          onSwitchToLogin: () => {
-            currentAuthView = 'login';
-            updateAuthUI();
-          },
-        });
-
-    authContainer.appendChild(form);
-    animationService.animateCardEntrance([form]);
-  }
-}
-
 /**
  * Update form state based on authentication status
  */
-export function updateFormAuthState(user: any): void {
+export function updateFormAuthState(user: User | null): void {
   const form = document.getElementById('application-form') as HTMLFormElement;
   const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 
@@ -1385,8 +1271,6 @@ export function updateFormAuthState(user: any): void {
     submitBtn.style.opacity = '1';
     form.style.opacity = '1';
     form.style.pointerEvents = 'auto';
-
-    // Remove any auth-related styling
     form.classList.remove('form-disabled');
   } else {
     // User is not authenticated - disable form submission
@@ -1395,56 +1279,8 @@ export function updateFormAuthState(user: any): void {
     submitBtn.style.opacity = '0.7';
     form.style.opacity = '0.8';
     form.style.pointerEvents = 'auto'; // Allow interaction but show error on submit
-
-    // Add visual indication
     form.classList.add('form-disabled');
   }
-}
-
-/**
- * Handle sign out
- */
-function handleSignOut(): void {
-  // Clear applications from store
-  setApplications([]);
-  setFilteredApplications([]);
-
-  // Clear UI
-  if (applicationsContainer) {
-    applicationsContainer.innerHTML = '';
-  }
-
-  // Reload will happen via auth state change
-}
-
-/**
- * Initialize authentication
- */
-function initializeAuth(): void {
-  // Listen for auth state changes
-  authService.onAuthStateChanged(user => {
-    if (user) {
-      console.log('✅ User authenticated:', user.email);
-      // User is signed in - load their applications
-      loadApplications();
-    } else {
-      console.log('👤 User not authenticated');
-      // User is signed out - clear applications but show empty state
-      setApplications([]);
-      setFilteredApplications([]);
-      if (applicationsContainer) {
-        applicationsContainer.innerHTML =
-          '<p class="empty-state">Sign in to view and manage your applications.</p>';
-      }
-      updateCounter(0, 0);
-    }
-
-    // Update auth UI
-    updateAuthUI();
-
-    // Update form state based on authentication
-    updateFormAuthState(user);
-  });
 }
 
 // ========================================
@@ -1458,13 +1294,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const firebaseInitialized = initializeFirebase();
 
   if (firebaseInitialized) {
-    // Render auth UI
-    renderAuthUI();
-
-    // Initialize auth state listener
-    initializeAuth();
-
-    // Note: loadApplications() will be called automatically when user signs in
+    // Auth logic is now managed by AuthManager inside initializeFirebase
   }
 
   // Subscribe to store changes
