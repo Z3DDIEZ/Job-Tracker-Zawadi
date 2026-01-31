@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@nanostores/persistent": "^0.9.0",
+    "all": "^0.0.0",
     "animejs": "^4.2.2",
     "chart.js": "^4.4.0",
     "firebase": "^10.7.1",
