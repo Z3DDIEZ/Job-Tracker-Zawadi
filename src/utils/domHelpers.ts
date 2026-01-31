@@ -176,3 +176,31 @@ export function showInfoMessage(message: string): void {
     messageDiv.remove();
   }, 3000);
 }
+
+/**
+ * Update form state based on authentication status
+ */
+export function updateFormAuthState(user: any | null, isGuest: boolean = false): void {
+  const form = document.getElementById('application-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+
+  if (!form || !submitBtn) return;
+
+  if (user || isGuest) {
+    // User is authenticated or in guest mode - enable form
+    submitBtn.disabled = false;
+    submitBtn.textContent = isGuest ? 'Sign In to Save' : 'Add Application';
+    submitBtn.style.opacity = '1';
+    form.style.opacity = '1';
+    form.style.pointerEvents = 'auto';
+    form.classList.remove('form-disabled');
+  } else {
+    // User is not authenticated - disable form submission
+    submitBtn.disabled = false; // Allow clicking to show error
+    submitBtn.textContent = 'Sign In Required';
+    submitBtn.style.opacity = '0.7';
+    form.style.opacity = '0.8';
+    form.style.pointerEvents = 'auto'; // Allow interaction but show error on submit
+    form.classList.add('form-disabled');
+  }
+}

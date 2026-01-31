@@ -46,6 +46,7 @@
     "@nanostores/persistent": "^0.9.0",
     "animejs": "^4.2.2",
     "chart.js": "^4.4.0",
+    "firebase": "^10.7.1",
     "motion": "^10.16.4",
     "nanostores": "^0.9.0",
     "papaparse": "^5.5.3"
